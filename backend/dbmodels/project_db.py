@@ -1,6 +1,9 @@
+from typing import Optional
+
+
 # ProjectDB for persistence mapping
 class ProjectDB:
-    def __init__(self, id, name, main_party_id, created_at, deleted_at):
+    def __init__(self, id: str, name: str, main_party_id: str, created_at: str, deleted_at: Optional[str]):
         """
         Persistence model for DB operations.
         Args:

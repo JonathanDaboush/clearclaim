@@ -1,6 +1,9 @@
 # PaymentDB for persistence mapping
+from typing import Dict, Any
+
+
 class PaymentDB:
-    def __init__(self, id, user_id, amount, method, metrics, paid_at):
+    def __init__(self, id: str, user_id: str, amount: float, method: str, metrics: Dict[str, Any], paid_at: str):
         """
         Persistence model for DB operations.
         Args:

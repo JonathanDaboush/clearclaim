@@ -1,21 +1,12 @@
-# User utility functions
+import re
+
 
 def normalize_email(email: str) -> str:
-    """
-    Normalize email address (lowercase, trim).
-    Args:
-        email (str): Email address
-    Returns:
-        str: Normalized email
-    """
-    pass
+    """Return the email address lowercased and stripped of whitespace."""
+    return email.strip().lower()
+
 
 def is_valid_email(email: str) -> bool:
-    """
-    Check if email is valid format.
-    Args:
-        email (str): Email address
-    Returns:
-        bool: True if valid
-    """
-    pass
+    """Return True if the email matches a standard address format."""
+    pattern = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+    return re.match(pattern, email) is not None

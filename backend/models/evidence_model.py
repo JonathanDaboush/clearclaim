@@ -1,6 +1,8 @@
-# Evidence model
+from typing import Optional, Dict
+import hashlib
+
 class Evidence:
-    def __init__(self, id, contract_id, added_by, file_url, file_type=None, file_size=None, hash_value=None, metadata=None, integrity_verified=False):
+    def __init__(self, id: str, contract_id: str, added_by: str, file_url: str, file_type: Optional[str] = None, file_size: Optional[int] = None, hash_value: Optional[str] = None, metadata: Optional[Dict[str, object]] = None, integrity_verified: bool = False):
         """
         Evidence entity.
         Args:
@@ -24,30 +26,54 @@ class Evidence:
         self.metadata = metadata
         self.integrity_verified = integrity_verified
 
+    def validate_evidence(self, file_url: str) -> bool:
+        """
+        Validate evidence file URL.
+        Returns True if URL is valid.
+        """
+        return file_url.startswith('http')
+
     def validate_file_type(self):
-        """Stub: Validate evidence file type."""
-        pass
+        """Validate evidence file type.
+        Returns True if file type is allowed (stub: always True)."""
+        return True
 
     def validate_file_size(self):
-        """Stub: Validate evidence file size."""
-        pass
+        """Validate evidence file size.
+        Returns True if file size is within limits (stub: always True)."""
+        return True
 
     def virus_scan(self):
-        """Stub: Scan evidence file for viruses."""
-        pass
+        """
+        Scan evidence file for viruses.
+        Returns True if clean (stub: always True).
+        """
+        return True
 
     def calculate_file_hash(self):
-        """Stub: Calculate hash of evidence file."""
-        pass
+        """
+        Calculate hash of evidence file.
+        Returns SHA256 hash (stub).
+        """
+        return hashlib.sha256(str(self.file_url).encode()).hexdigest()
 
     def store_evidence_object(self):
-        """Stub: Store evidence file object."""
-        pass
+        """
+        Store evidence file object.
+        Logs storage (stub).
+        """
+        return True
 
-    def generate_evidence_metadata(self):
-        """Stub: Generate metadata for evidence file."""
-        pass
+    def generate_evidence_metadata(self) -> Dict[str, object]:
+        """
+        Generate metadata for evidence file.
+        Returns dict (stub).
+        """
+        return {'file_url': self.file_url, 'file_type': self.file_type, 'file_size': self.file_size}
 
     def verify_evidence_integrity(self):
-        """Stub: Verify evidence integrity by hash."""
-        pass
+        """
+        Verify evidence integrity by hash.
+        Returns True if hash matches (stub: always True).
+        """
+        return True

@@ -1,5 +1,9 @@
 # EvidenceDB for persistence mapping
-    def __init__(self, id, contract_id, added_by, file_url, file_type=None, file_size=None, hash_value=None, metadata=None, integrity_verified=False):
+from typing import Dict, Any, Optional
+
+
+class EvidenceDB:
+    def __init__(self, id: str, contract_id: str, added_by: str, file_url: str, file_type: Optional[str] = None, file_size: Optional[int] = None, hash_value: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None, integrity_verified: bool = False):
         """
         Persistence model for DB operations.
         Args:

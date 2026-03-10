@@ -1,6 +1,8 @@
-# User model
+import jwt
+from typing import Optional
+
 class User:
-    def __init__(self, id, email, password_hash, authenticator_enabled, role_id, verification_status):
+    def __init__(self, id: str, email: str, password_hash: str, authenticator_enabled: bool, role_id: Optional[str], verification_status: str):
         """
         User entity.
         Args:
@@ -17,3 +19,18 @@ class User:
         self.authenticator_enabled = authenticator_enabled
         self.role_id = role_id
         self.verification_status = verification_status
+
+    def validate_email(self, email: str) -> bool:
+        """
+        Validate email format.
+        Returns True if valid, else False.
+        """
+        import re
+        return re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email) is not None
+
+    def generate_auth_token(self, user_id: str) -> str:
+        """
+        Generate authentication token for user.
+        Returns a JWT token (stub).
+        """
+        return jwt.encode({'user_id': user_id}, 'secret', algorithm='HS256')  # type: ignore[reportUnknownMemberType]

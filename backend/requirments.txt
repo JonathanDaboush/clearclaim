@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+python-dotenv
+passlib
+pyjwt
+pydantic
+cryptography
+requests
+email-validator
+python-multipart
+aiofiles
+pytest
+httpx
+python-dateutil

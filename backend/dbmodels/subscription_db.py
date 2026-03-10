@@ -1,6 +1,6 @@
 # SubscriptionDB for persistence mapping
 class SubscriptionDB:
-    def __init__(self, id, user_id, tier, start_date, end_date):
+    def __init__(self, id: str, user_id: str, tier: str, start_date: str, end_date: str):
         """
         Persistence model for DB operations.
         Args:

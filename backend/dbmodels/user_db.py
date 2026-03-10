@@ -1,6 +1,6 @@
 # UserDB for persistence mapping
 class UserDB:
-    def __init__(self, id, email, password_hash, authenticator_enabled, role_id, verification_status):
+    def __init__(self, id: str, email: str, password_hash: str, authenticator_enabled: bool, role_id: str, verification_status: str):
         """
         Persistence model for DB operations.
         Args:

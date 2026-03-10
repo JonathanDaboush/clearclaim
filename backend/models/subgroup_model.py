@@ -1,6 +1,6 @@
 # Subgroup model
 class Subgroup:
-    def __init__(self, id, project_id, name):
+    def __init__(self, id: str, project_id: str, name: str):
         """
         Subgroup entity.
         Args:

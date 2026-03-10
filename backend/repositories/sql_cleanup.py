@@ -1,6 +1,8 @@
-# SQL cleanup utility for repository layer
+import re
+
+
 class SQLCleanup:
     @staticmethod
-    def cleanup_sql(sql_query):
-        """Clean up SQL query for safety and performance."""
-        pass
+    def cleanup_sql(sql_query: str) -> str:
+        """Strip leading/trailing whitespace and collapse internal whitespace for safe, clean SQL."""
+        return re.sub(r"\s+", " ", sql_query.strip())

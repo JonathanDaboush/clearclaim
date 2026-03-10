@@ -25,7 +25,12 @@ Projects & Subgroups:
 • Soft deletion for leaving users; historical participation is preserved
 
 Roles & Permissions:
-• Role-based permissions (manager, lawyer, client, guest)
+• Role-based permissions (worker_manager, worker, legal_rep, client, guest)
+  - worker_manager: full access + can invite/manage other workers
+  - worker: create/revise contracts, add evidence, approve revisions, sign
+  - legal_rep: approve revisions, add evidence, sign
+  - client: sign contracts, view
+  - guest: view only
 • Actions such as signing, evidence addition/deletion, revision approval are restricted based on role
 • Role changes can be made by user admin; easily managed via UI
 
@@ -137,9 +142,11 @@ Evidence & Contracts:
 	- Admin creates project → defines main party and subgroups
 	- Users invited → must be approved to join
 	- Role-based permissions enforced:
-			- Manager → full access
-			- Lawyer → can review/sign and approve revisions
-			- Guest/Client → limited access based on project
+			- worker_manager → full access + manage other workers
+			- worker → create/revise contracts, add evidence, approve revisions, sign
+			- legal_rep → review, approve revisions, add evidence, sign
+			- client → sign contracts, view
+			- guest → view only
 
 ✅ Key Takeaways
 # 3. Contract & Revision Layer
@@ -320,4 +327,38 @@ Apple-style design principle applied: complexity handled internally, minimal use
     - Manage devices (UI: approve/revoke)
     - View evidence/revisions (UI: timeline, diff)
     - Receive alerts (UI: notifications, instructions)
+
+================================================================================
+# 10. Legal Compliance Additions
+
+Accessibility:
+- Screen reader support, keyboard navigation, high-contrast mode.
+- Accessibility statement published and contact info for accessibility issues.
+
+Privacy Policy & Terms of Service:
+- Clear privacy policy and terms of service displayed to users.
+- Includes user rights, data handling, dispute resolution, and governing law.
+
+Data Breach Notification:
+- Process for notifying users and authorities in case of a data breach.
+
+Data Localization & Cross-Border Transfers:
+- If data is stored outside Canada, users are informed and PIPEDA compliance ensured.
+
+Automated Record Retention/Deletion:
+- Records are retained as required by law and industry standards.
+- Users can delete accounts, but audit logs and evidence remain immutable for legal and compliance reasons.
+
+Children’s Privacy (COPPA):
+- If users under 13 are allowed, parental consent and special protections are implemented.
+
+Right to be Forgotten:
+- Users may request deletion of personal data, but audit logs and evidence are not deleted to preserve legal integrity.
+
+User Consent Management:
+- Users can opt-in/opt-out of marketing and non-essential data collection.
+- Consent for data processing is recorded and managed.
+
+Dispute Resolution & Jurisdiction:
+- Governing law and dispute resolution process specified in terms of service.
 

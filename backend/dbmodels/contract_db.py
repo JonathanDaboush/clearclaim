@@ -1,6 +1,6 @@
 # ContractDB for persistence mapping
 class ContractDB:
-    def __init__(self, id, project_id, current_version_id, created_by):
+    def __init__(self, id: str, project_id: str, current_version_id: str, created_by: str):
         """
         Persistence model for DB operations.
         Args:

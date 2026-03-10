@@ -1,6 +1,6 @@
 # ContractVersion model
 class ContractVersion:
-    def __init__(self, id, contract_id, content, created_by, signed, created_at):
+    def __init__(self, id: str, contract_id: str, content: str, created_by: str, signed: bool, created_at: str):
         """
         Contract version entity.
         Args:

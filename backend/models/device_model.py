@@ -1,6 +1,6 @@
 # Device model
 class Device:
-    def __init__(self, id, user_id, device_name, trusted, created_at, revoked_at):
+    def __init__(self, id: str, user_id: str, device_name: str, trusted: bool, created_at: str, revoked_at: str):
         self.id = id
         self.user_id = user_id
         self.device_name = device_name

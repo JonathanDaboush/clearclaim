@@ -1,6 +1,6 @@
 # SubgroupDB for persistence mapping
 class SubgroupDB:
-    def __init__(self, id, project_id, name):
+    def __init__(self, id: str, project_id: str, name: str):
         """
         Persistence model for DB operations.
         Args:

@@ -1,6 +1,6 @@
 # AuditLogDB for persistence mapping
 class AuditLogDB:
-    def __init__(self, id, user_id, device_id, event_type, related_object_id, details, timestamp, hash):
+    def __init__(self, id: str, user_id: str, device_id: str, event_type: str, related_object_id: str, details: str, timestamp: str, hash: str):
         """
         Persistence model for DB operations.
         Args:

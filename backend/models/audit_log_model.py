@@ -1,6 +1,8 @@
-# AuditLog model
+import hashlib
+from typing import Dict
+
 class AuditLog:
-    def __init__(self, id, user_id, device_id, event_type, related_object_id, details, timestamp, hash):
+    def __init__(self, id: str, user_id: str, device_id: str, event_type: str, related_object_id: str, details: str, timestamp: str, hash: str):
         """
         Audit log entity.
         Args:
@@ -21,3 +23,18 @@ class AuditLog:
         self.details = details
         self.timestamp = timestamp
         self.hash = hash
+
+    def validate_event(self, event_type: str, details: Dict[str, object]) -> bool:
+        """
+        Validate audit event.
+        Returns True if event_type and details are present.
+        """
+        return bool(event_type and details)
+
+    def generate_audit_hash(self, *args: object) -> str:
+        """
+        Generate audit log hash.
+        Returns a SHA256 hash of args.
+        """
+        hash_input = ':'.join(str(arg) for arg in args).encode()
+        return hashlib.sha256(hash_input).hexdigest()
