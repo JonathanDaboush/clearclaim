@@ -1,0 +1,323 @@
+1. User Accounts and Identity
+
+Sign-up/Login/Password Management:
+• Email + password only (no usernames)
+• Forgot password and account removal supported
+• Authenticator app (TOTP) required for login and signing
+
+Identity Verification:
+• Optional/required government ID verification for higher legal assurance
+• Verification result stored (status, provider, timestamp), not raw sensitive IDs
+• Guests and clients follow same verification protocols
+
+Multi-Device Support:
+• Trusted device system
+• New devices require authenticator code + email verification
+• Users can revoke devices at any time
+• Lost/stolen devices cannot sign or tamper with logs
+
+2. Projects, Groups, and Roles
+
+Projects & Subgroups:
+• All projects have a main party; subgroups can exist within projects
+• Subgroup memberships and roles are managed independently from overall project membership
+• Users can join/leave subgroups only with permission from existing members
+• Soft deletion for leaving users; historical participation is preserved
+
+Roles & Permissions:
+• Role-based permissions (manager, lawyer, client, guest)
+• Actions such as signing, evidence addition/deletion, revision approval are restricted based on role
+• Role changes can be made by user admin; easily managed via UI
+
+Notifications:
+• Role-based notifications for relevant updates
+
+3. Contracts and Agreements
+
+Signing Process:
+• Users must explicitly confirm intent to sign
+• Authenticator app code required for each signature
+• Users may save signature images but cannot sign automatically with saved images
+• Each signing event logged with user ID, timestamp, IP, device info, contract version, and hash
+
+Revision Tracking:
+• GitHub-style line-by-line comparison for contract changes
+• All revisions must be approved by all parties
+• Historical versions preserved for audit
+
+Evidence Management:
+• Evidence addition/deletion requires unanimous consent from all relevant parties
+• All evidence is timestamped and hashed for integrity
+• Users notified of changes or deletions
+
+4. Security and Tamper-Prevention
+
+Audit Logs:
+• Append-only logs
+• Cryptographically chained (hash of each log includes previous hash)
+• Periodic snapshot hashes anchored externally or archived
+• Includes event details, timestamps, device, and signing actions
+
+Key Management:
+• Hierarchical key system: root key (offline/HSM), system signing key (HSM), ephemeral session keys
+• Ephemeral signing tokens bound to specific sessions/documents
+• Key rotation supported; signed by previous keys
+• Lost device recovery without breaking log integrity
+
+Suspicious Activity Monitoring:
+• New device logins, unusual activity, repeated failed signing attempts trigger alerts
+• Alerts sent to users/admins
+• Suspicious events temporarily restrict sensitive actions
+
+5. Payment and Billing
+
+Hybrid Pricing Model:
+• Clients/businesses pay monthly subscription
+• Guest accounts are free and dependent on project existence
+• Employees/other participants can optionally be charged depending on subscription tier
+• Users can view payment history and simple metrics explaining charges
+• Apple-style “ease of understanding” visualization
+
+6. User Experience and Apple-Style Simplicity
+
+Signing/Contract Actions:
+• Open contract → click sign → enter authenticator code
+• Time to sign: ~10 seconds
+• Users never see cryptography or key management details
+
+Alerts & Guidance:
+• Clear, short instructions for resolving issues (lost device, suspicious activity, recovery)
+• Minimal steps for all security actions
+• Device approval/revocation handled with a few clicks
+
+Revision/Evidence Visibility:
+• Users see chronological history of contract and evidence changes
+• Color-coded diffs, added/deleted lines
+• Timeline view similar to GitHub activity logs
+
+7. Legal and Compliance Considerations
+
+Identity Verification and Signatures:
+• Complies with ESIGN, UETA (US), eIDAS (EU), PIPEDA (Canada)
+• Strong evidence of identity, intent, and document integrity
+
+Audit Trails & Tamper Evidence:
+• Cryptographic chaining + HSM keys make logs tamper-evident
+
+• Device revocation and multi-device authentication maintain audit validity
+# 1. User Account Layer
+
+
+	- **Account Database**
+			- Stores email, password hash, authenticator status, device list, role, verification status
+			- No sensitive identifiers like SIN stored
+	- **Identity Verification Module**
+			- Optional government ID check for high-assurance users
+			- Stores verification status, timestamp, and provider reference
+	- **Multi-Device Management**
+			- Trusted devices stored per user
+			- Device revocation possible anytime
+			- New device login triggers email + authenticator confirmation
+
+Evidence & Contracts:
+	- User signs up → enters email/password → optional ID verification
+	- Device added → user approves via authenticator + email
+	- Any new device login → approval + logs event
+
+• Historical versions preserved
+# 2. Project & Group Layer
+
+• All additions/deletions consented and logged
+	- **Projects Table**
+	- **Subgroups Table**
+	- **Membership Table** (links user → project/subgroup → role)
+	- **Roles Table** (defines permissions per role)
+
+
+	- Admin creates project → defines main party and subgroups
+	- Users invited → must be approved to join
+	- Role-based permissions enforced:
+			- Manager → full access
+			- Lawyer → can review/sign and approve revisions
+			- Guest/Client → limited access based on project
+
+✅ Key Takeaways
+# 3. Contract & Revision Layer
+
+
+	- **Contracts Table**
+	- **Contract Versions Table**
+	- **Revision Changes Table** (diffs for line-by-line modifications)
+	- **Evidence Table** (files, images, timestamps, hashes)
+
+System balances maximum security with simplicity
+	- Contract created → version 1 saved
+	- Users make revisions → new version created → diff logged
+	- All revisions require unanimous approval
+	- Evidence added/deleted → all actions logged and consented
+
+
+# 4. Signing & Authentication Layer
+
+Legal evidence is strong, logs are tamper-proof, identity is verified
+	- **Signing Module**
+			- Authenticator app required for every signing action
+			- Ephemeral signing token generated per document
+	- **Signature Storage**
+			- Cryptographic signature tied to user ID, contract version, timestamp
+			- Optionally stored image for reference (cannot sign alone)
+
+
+	- User clicks “Sign” → enters authenticator code
+	- System creates signed log entry → hashes contract content
+	- Log appended to audit chain
+
+Users can sign from any device safely
+# 5. Audit Log & Integrity Layer
+
+
+	- **Append-only audit log table**
+	- **Cryptographic hash chain** (each entry includes previous hash)
+	- **Key Hierarchy:**
+			- Root key (offline/HSM)
+			- System signing key (HSM)
+			- Ephemeral session keys per device
+	- **Periodic snapshot hashes** (archived externally)
+
+Guests/clients follow the same strict security protocols
+	- Every action → logged → hashed → signed by system key
+	- Verification can detect tampering
+	- Lost devices do not affect log integrity
+
+
+# 6. Security & Monitoring Layer
+
+System is designed to scale, accommodate device loss, and maintain cryptographic integrity
+	- **Suspicious Activity Detector**
+			- Monitors login attempts, device changes, unusual signing behavior
+	- **Alerts Module**
+			- Sends emails or in-app notifications
+	- **Recovery Module**
+			- Supports new device setup with identity verification
+			- Revokes lost device access
+
+
+	- Suspicious login or activity detected → temporary restrictions
+	- Alerts sent to user/admin
+	- Recovery and new device approval possible without breaking logs
+
+Apple-style design principle applied: complexity handled internally, minimal user friction externally
+# 7. Payment & Subscription Layer
+
+
+	- **Subscription Table**
+	- **Payment History Table**
+	- **Metrics Table** (explains charges in simple UI)
+	- **Hybrid Pricing Model**
+			- Clients/businesses pay monthly
+			- Guest accounts free
+			- Employee/participant charges optional
+
+
+
+================================================================================
+# 8. User Interface (Apple-Style Simplicity)
+
+  - Sign contracts in two clicks + authenticator code
+  - View project timeline & contract diffs
+  - Device management and recovery: single approval/revoke button
+  - Evidence and revisions displayed chronologically
+  - Minimal, intuitive instructions for all security events
+
+================================================================================
+# 9. System Flow Summary (High-Level)
+
+  - User Registration & Verification → Multi-device setup
+  - Project Creation & Role Assignment → Subgroup permissions
+  - Contract Drafting & Revision → line-by-line diff tracking
+  - Evidence Management → add/delete requires consent, all hashed
+  - Signing Process → authenticator code + ephemeral signing token
+  - Audit Logging → append-only, cryptographically chained, snapshot anchors
+  - Security Monitoring → alerts & temporary restrictions
+  - Device Recovery → identity verification, add new trusted device
+  - Payment & Metrics → transparent, hybrid model
+  - User Interface → simple, intuitive, hides backend complexity
+
+================================================================================
+# ERD Table Specs
+
+| Table Name            | Columns & Types                                                                                  | PK         | FKs / Constraints                                                                                  |
+|----------------------|--------------------------------------------------------------------------------------------------|------------|----------------------------------------------------------------------------------------------------|
+| users                | id (UUID), email (unique), password_hash, authenticator_enabled (bool), role_id, verification_status (enum), created_at, updated_at | id         | role_id → roles.id; email unique                                                                  |
+| devices              | id (UUID), user_id, device_info, trusted (bool), added_at, revoked_at                            | id         | user_id → users.id; revoked_at nullable                                                           |
+| identity_verifications| id (UUID), user_id, provider, status (enum), timestamp                                           | id         | user_id → users.id                                                                               |
+| projects             | id (UUID), name, main_party_id, created_at, deleted_at                                           | id         | main_party_id → users.id; deleted_at nullable                                                     |
+| subgroups            | id (UUID), project_id, name, created_at, deleted_at                                              | id         | project_id → projects.id; deleted_at nullable                                                     |
+| memberships          | id (UUID), user_id, project_id, subgroup_id, role_id, joined_at, left_at, soft_deleted (bool)    | id         | user_id → users.id; project_id → projects.id; subgroup_id → subgroups.id; role_id → roles.id      |
+| roles                | id (UUID), name, permissions (JSON), created_at                                                  | id         | name unique                                                                                      |
+| contracts            | id (UUID), project_id, created_by, created_at, current_version_id                                | id         | project_id → projects.id; created_by → users.id; current_version_id → contract_versions.id        |
+| contract_versions    | id (UUID), contract_id, version_number, content, created_at, approved_by (JSON array of objects: {user_id, timestamp}), hash | id         | contract_id → contracts.id; approved_by validated via application logic                           |
+| revision_changes     | id (UUID), contract_version_id, diff (JSON), created_at                                          | id         | contract_version_id → contract_versions.id                                                        |
+| evidence             | id (UUID), file_url, added_by, added_at, deleted_at, hash                                        | id         | added_by → users.id; deleted_at nullable                                                          |
+| evidence_contracts   | id (UUID), evidence_id, contract_id                                                              | id         | evidence_id → evidence.id; contract_id → contracts.id                                             |
+| signatures           | id (UUID), contract_version_id, user_id, signature_data, image_url, timestamp, ip, device_id     | id         | contract_version_id → contract_versions.id; user_id → users.id; device_id → devices.id            |
+| audit_logs           | id (UUID), event_type, user_id, device_id, contract_id, contract_version_id, timestamp (UTC), details, prev_hash, hash, snapshot_hash | id         | user_id → users.id; device_id → devices.id; contract_id → contracts.id; contract_version_id → contract_versions.id; prev_hash required |
+| keys                 | id (UUID), type (enum: root, system, session), parent_id, created_at, rotated_at, status (enum)  | id         | parent_id → keys.id nullable                                                                     |
+| subscriptions        | id (UUID), user_id, tier, start_date, end_date, status (enum)                                    | id         | user_id → users.id                                                                               |
+| payments             | id (UUID), user_id, amount, date, method, status (enum), metrics (JSON)                          | id         | user_id → users.id                                                                               |
+| notifications        | id (UUID), user_id, event_type, content, sent_at, read_at, related_object_id, related_object_type| id         | user_id → users.id; read_at nullable                                                             |
+
+================================================================================
+# Functions Diagram (Outline)
+
+  User Account Layer
+    - Sign-up(email, password)
+    - Login(email, password, TOTP)
+    - Forgot password(email)
+    - Remove account(user_id)
+    - Add device(user_id, device_info, TOTP, email verification)
+    - Revoke device(user_id, device_id)
+    - Identity verification(user_id, provider, status)
+
+  Project & Group Layer
+    - Create project(name, main_party)
+    - Create subgroup(project_id, name)
+    - Invite user(project_id, subgroup_id, user_id, role)
+    - Change role(user_id, project_id, subgroup_id, role)
+    - Leave project/subgroup(user_id, project_id, subgroup_id)
+
+  Contract & Revision Layer
+    - Create contract(project_id, content)
+    - Revise contract(contract_id, new_content)
+    - Approve revision(contract_version_id, user_id)
+    - Add evidence(contract_id, file_url, hash)
+    - Delete evidence(evidence_id, unanimous consent)
+
+  Signing & Authentication Layer
+    - Sign contract(contract_version_id, user_id, TOTP)
+    - Store signature(signature_data, image_url)
+    - Generate ephemeral signing token(document/session)
+
+  Audit Log & Integrity Layer
+    - Log event(event_type, user_id, device_id, contract_id, contract_version_id, details)
+    - Chain log(prev_hash, hash)
+    - Snapshot log(hash, archive)
+
+  Security & Monitoring Layer
+    - Detect suspicious activity(user_id, event)
+    - Send alert(user_id, event_type, content)
+    - Restrict actions(user_id, event_type)
+    - Recover device(user_id, identity verification)
+
+  Payment & Subscription Layer
+    - Record payment(user_id, amount, method)
+    - Update subscription(user_id, tier, status)
+    - Generate metrics(user_id)
+
+  User Interface Layer
+    - Sign contract (UI: click, enter TOTP)
+    - View timeline (UI: chronological, color-coded diffs)
+    - Manage devices (UI: approve/revoke)
+    - View evidence/revisions (UI: timeline, diff)
+    - Receive alerts (UI: notifications, instructions)
+
