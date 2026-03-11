@@ -1,0 +1,46 @@
+
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      # Use telecom_test for testing
+      DATABASE_URL: postgresql+psycopg2://postgres:password@postgres:5432/clear_case
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - '8000:8000'
+    depends_on:
+      - redis
+      - postgres
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - '5173:5173'
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: clear_case
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./sql/initdb:/docker-entrypoint-initdb.d
+    ports:
+      - '5432:5432'
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - '80:80'
+    depends_on:
+      - frontend
+      - backend

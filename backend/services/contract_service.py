@@ -18,8 +18,19 @@ class ContractService:
         return {"status": "Contract created", "contract_id": contract_id, "version_id": version_id}
 
     def create_contract_revision(self, contract_id: str, new_content: str, user_id: str) -> Dict[str, Any]:
-        """Create a new revision version of a contract."""
+        """Create a new revision version of a contract, storing a diff in revision_changes."""
+        # Fetch current content for diff computation
+        from repositories.contract_versions_repo import ContractVersionsRepository as CVR
+        existing = CVR.get_by_contract(contract_id)
+        old_content = existing[-1].content if existing else ""
+        diff_str = self.generate_contract_diff(old_content, new_content)
         version_id = ContractVersionsRepository.create_contract_version(contract_id, new_content, user_id)
+        # Store the diff in revision_changes
+        import uuid, json, db as _db
+        _db.execute(
+            "INSERT INTO revision_changes (id, contract_version_id, diff) VALUES (%s, %s, %s)",
+            (str(uuid.uuid4()), version_id, json.dumps({"unified_diff": diff_str})),
+        )
         AuditService().log_event("create_contract_revision", user_id, {"contract_id": contract_id, "version_id": version_id})
         NotificationService().create_notification(user_id, "revision_created", f"New revision created for contract {contract_id}.")
         return {"status": "Revision created", "version_id": version_id}

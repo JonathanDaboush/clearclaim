@@ -1,7 +1,7 @@
 from typing import Optional
 
 class Signature:
-    def __init__(self, id: str, contract_version_id: str, user_id: str, device_id: str, signed_at: str, signature_data: str = "", image_url: Optional[str] = None, ip: str = ""):
+    def __init__(self, id: str, contract_version_id: str, user_id: str, device_id: str, signed_at: str, signature_hash: str = "", image_url: Optional[str] = None, ip: str = ""):
         """
         Signature entity.
         Args:
@@ -10,7 +10,7 @@ class Signature:
             user_id (str): User ID
             device_id (str): Device ID
             signed_at (str): UTC timestamp
-            signature_data (str): Cryptographic signature hash
+            signature_hash (str): Cryptographic signature hash
             image_url (str): Optional stored signature image URL
             ip (str): IP address of signing device
         """
@@ -19,7 +19,7 @@ class Signature:
         self.user_id = user_id
         self.device_id = device_id
         self.signed_at = signed_at
-        self.signature_data = signature_data
+        self.signature_hash = signature_hash
         self.image_url = image_url
         self.ip = ip
 

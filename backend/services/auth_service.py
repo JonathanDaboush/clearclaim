@@ -17,13 +17,15 @@ class AuthService:
         if consent:
             AuditService().log_event("consent", email, {"consent": consent})
         password_hash = hash_password(password)
-        user_id = UsersRepository.create_user(email=email, password_hash=password_hash)
+        result = UsersRepository.create_user(email=email, password_hash=password_hash)
+        user_id = result["user_id"]
+        totp_secret = result["totp_secret"]
         AuditService().log_event("create_user", user_id, {"email": email})
         NotificationService().create_notification(user_id, "accessibility", "Accessibility features available in settings.")
-        return {"status": "User created", "user_id": user_id}
+        return {"status": "User created", "user_id": user_id, "totp_secret": totp_secret}
 
     def authenticate_user(self, email: str, password: str) -> Dict[str, Any]:
-        """Verify email and password. Returns user info on success, error on failure."""
+        """Verify email and password. Returns user info including totp_secret on success."""
         user = UsersRepository.get_user_by_email(email)
         if not user:
             return {"status": "error", "message": "User not found."}
@@ -31,7 +33,13 @@ class AuthService:
             AuditService().log_event("failed_login", email, {"reason": "bad_password"})
             return {"status": "error", "message": "Invalid credentials."}
         AuditService().log_event("login", user["id"], {})
-        return {"status": "ok", "user_id": user["id"]}
+        return {
+            "status": "ok",
+            "user_id": user["id"],
+            "email": email,
+            "totp_secret": user["totp_secret"],
+            "verification_status": user["verification_status"],
+        }
 
     def verify_totp(self, user_id: str, totp_secret: str, code: str) -> bool:
         """Verify a TOTP code for 2FA. Returns True if valid."""

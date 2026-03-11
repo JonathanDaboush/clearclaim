@@ -47,3 +47,12 @@ def join_subgroup(user_id: str, subgroup_id: str, project_id: str, role: str) ->
 def leave_subgroup(user_id: str, subgroup_id: str, project_id: str) -> Dict[str, Any]:
     """Controller for leaving a subgroup within a project."""
     return project_service.leave_subgroup(user_id, subgroup_id, project_id)
+
+def get_user_projects(user_id: str) -> List[Dict[str, Any]]:
+    """Return all projects the given user belongs to."""
+    return project_service.get_user_projects(user_id)
+
+def get_project_contracts(project_id: str) -> List[Dict[str, Any]]:
+    """Return all contracts belonging to a project."""
+    from repositories.contracts_repo import ContractsRepository
+    return ContractsRepository.get_by_project(project_id)

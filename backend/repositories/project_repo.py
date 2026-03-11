@@ -1,30 +1,44 @@
 import uuid
-import datetime
-from typing import List
-from models.project_model import Project
+from typing import Any, Dict, List, Optional
+import db
 
 
 class ProjectRepository:
-    _projects: List[Project] = []  # In-memory (replace with DB in production)
 
     @staticmethod
     def insert_project(name: str, main_party_id: str, created_at: str) -> str:
-        """Create a new project record. Returns the new project ID."""
         project_id = str(uuid.uuid4())
-        ProjectRepository._projects.append(Project(
-            id=project_id,
-            name=name,
-            main_party_id=main_party_id,
-            created_at=created_at,
-            deleted_at=None,
-        ))
+        db.execute(
+            "INSERT INTO projects (id, name, main_party_id) VALUES (%s, %s, %s)",
+            (project_id, name, main_party_id),
+        )
         return project_id
 
     @staticmethod
     def delete_project(project_id: str) -> bool:
-        """Soft-delete a project by setting deleted_at. Returns True if found."""
-        for project in ProjectRepository._projects:
-            if project.id == project_id and project.deleted_at is None:
-                project.deleted_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
-                return True
-        return False
+        rows = db.query("SELECT id FROM projects WHERE id = %s AND deleted_at IS NULL", (project_id,))
+        if not rows:
+            return False
+        db.execute("UPDATE projects SET deleted_at = NOW() WHERE id = %s", (project_id,))
+        return True
+
+    @staticmethod
+    def get_by_id(project_id: str) -> Optional[Dict[str, Any]]:
+        rows = db.query(
+            "SELECT id, name, main_party_id, created_at::text AS created_at, deleted_at::text AS deleted_at FROM projects WHERE id = %s",
+            (project_id,),
+        )
+        return rows[0] if rows else None
+
+    @staticmethod
+    def get_by_user(user_id: str) -> List[Dict[str, Any]]:
+        """Return all active projects the user is a member of."""
+        return db.query(
+            """
+            SELECT p.id, p.name, p.main_party_id, p.created_at::text AS created_at
+            FROM projects p
+            JOIN memberships m ON m.project_id = p.id
+            WHERE m.user_id = %s AND m.soft_deleted = FALSE AND p.deleted_at IS NULL
+            """,
+            (user_id,),
+        )

@@ -25,7 +25,7 @@ class SigningService:
         sig_hash = self.generate_signature_hash(contract_version_id, user_id)
         signature_id = SignatureRepository.insert_signature(
             contract_version_id, user_id, device_id, signed_at,
-            signature_data=sig_hash, ip=ip
+            signature_hash=sig_hash, ip=ip
         )
         AuditService().log_event("sign_contract", user_id, {
             "version_id": contract_version_id,

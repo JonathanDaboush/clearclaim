@@ -82,3 +82,7 @@ class ProjectService:
         AuditService().log_event("leave_subgroup", user_id, {"project_id": project_id, "subgroup_id": subgroup_id})
         NotificationService().create_notification(user_id, "subgroup_left", f"You left subgroup {subgroup_id}.")
         return {"status": "Left subgroup"}
+
+    def get_user_projects(self, user_id: str) -> List[Dict[str, Any]]:
+        """Return all active projects a user belongs to."""
+        return ProjectRepository.get_by_user(user_id)

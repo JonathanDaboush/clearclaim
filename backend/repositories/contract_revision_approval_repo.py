@@ -1,34 +1,30 @@
 import uuid
-import datetime
-from typing import List, Dict, Any
-from models.contract_revision_approval_model import ContractRevisionApproval
+from typing import Any, Dict, List
+import db
 
 
 class ContractRevisionApprovalRepository:
-    _approvals: List[ContractRevisionApproval] = []  # In-memory (replace with DB in production)
 
     def create_approval(self, contract_version_id: str, user_id: str) -> str:
-        """Record that a user has approved a contract revision. Returns the approval ID."""
         approval_id = str(uuid.uuid4())
-        approval = ContractRevisionApproval(
-            id=approval_id,
-            contract_version_id=contract_version_id,
-            user_id=user_id,
-            approved_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        db.execute(
+            "INSERT INTO contract_revision_approvals (id, contract_version_id, user_id) VALUES (%s, %s, %s)",
+            (approval_id, contract_version_id, user_id),
         )
-        self._approvals.append(approval)
         return approval_id
 
     def get_approval(self, contract_version_id: str, user_id: str) -> Dict[str, Any]:
-        """Return the approval record for a specific user and version, or not-approved."""
-        for approval in self._approvals:
-            if approval.contract_version_id == contract_version_id and approval.user_id == user_id:
-                return {"approved": True, "approved_at": approval.approved_at, "id": approval.id}
+        rows = db.query(
+            "SELECT id, approved_at::text AS approved_at FROM contract_revision_approvals WHERE contract_version_id = %s AND user_id = %s LIMIT 1",
+            (contract_version_id, user_id),
+        )
+        if rows:
+            return {"approved": True, "approved_at": rows[0]["approved_at"], "id": rows[0]["id"]}
         return {"approved": False}
 
     def get_approvals_for_version(self, contract_version_id: str) -> List[Dict[str, Any]]:
-        """Return all approval records for a contract version."""
-        return [
-            {"user_id": a.user_id, "approved_at": a.approved_at, "id": a.id}
-            for a in self._approvals if a.contract_version_id == contract_version_id
-        ]
+        rows = db.query(
+            "SELECT id, user_id, approved_at::text AS approved_at FROM contract_revision_approvals WHERE contract_version_id = %s",
+            (contract_version_id,),
+        )
+        return [{"user_id": r["user_id"], "approved_at": r["approved_at"], "id": r["id"]} for r in rows]

@@ -39,3 +39,16 @@ def transition_contract_state(contract_id: str, new_state: str) -> Dict[str, Any
 def get_contract_versions(contract_id: str) -> List[Dict[str, Any]]:
     """Controller for getting contract versions."""
     return contract_service.get_contract_versions(contract_id)
+
+def get_contract(contract_id: str) -> Dict[str, Any]:
+    """Return a single contract record by ID."""
+    from repositories.contracts_repo import ContractsRepository
+    matches = ContractsRepository.get_by_id(contract_id)
+    if not matches:
+        return {"error": "Contract not found"}
+    return matches[0]
+
+def get_project_contracts(project_id: str) -> List[Dict[str, Any]]:
+    """Return all contracts belonging to a project."""
+    from repositories.contracts_repo import ContractsRepository
+    return ContractsRepository.get_by_project(project_id)

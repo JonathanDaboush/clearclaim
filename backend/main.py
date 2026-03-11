@@ -48,6 +48,8 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/user/start_identity_verification': user_ctrl.start_identity_verification,
     '/user/store_identity_verification_result': user_ctrl.store_identity_verification_result,
     '/user/check_identity_verification_status': user_ctrl.check_identity_verification_status,
+    # ── Added: user profile lookup ────────────────────────────────────────────
+    '/user/get_me': user_ctrl.get_me,
 
     # ── Auth (lower-level) ──────────────────────────────────────────────────────
     '/auth/create_user': auth_ctrl.create_user,
@@ -75,6 +77,9 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/project/get_user_role': project_ctrl.get_user_project_role,
     '/project/join_subgroup': project_ctrl.join_subgroup,
     '/project/leave_subgroup': project_ctrl.leave_subgroup,
+    # ── Added: user project listing and per-project contract listing ──────────
+    '/project/get_user_projects': project_ctrl.get_user_projects,
+    '/project/get_contracts': project_ctrl.get_project_contracts,
 
     # ── Contract ────────────────────────────────────────────────────────────────
     '/contract/create': contract_ctrl.create_contract,
@@ -86,7 +91,9 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/contract/get_state': contract_ctrl.get_contract_state,
     '/contract/transition_state': contract_ctrl.transition_contract_state,
     '/contract/get_versions': contract_ctrl.get_contract_versions,
-
+    # ── Added: single contract lookup and project-contract listing ────────────
+    '/contract/get': contract_ctrl.get_contract,
+    '/contract/get_project_contracts': contract_ctrl.get_project_contracts,
     # ── Evidence ────────────────────────────────────────────────────────────────
     '/evidence/upload': evidence_ctrl.upload_evidence,
     '/evidence/validate_file': evidence_ctrl.validate_evidence_file,
@@ -120,6 +127,8 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/audit/recalculate_hash': audit_ctrl.recalculate_log_hash,
     '/audit/snapshot': audit_ctrl.generate_audit_snapshot,
     '/audit/archive_snapshot': audit_ctrl.archive_audit_snapshot,
+    # ── Added: audit entry retrieval ──────────────────────────────────────────
+    '/audit/get_entries': audit_ctrl.get_audit_entries,
 
     # ── Notification ────────────────────────────────────────────────────────────
     '/notification/send': notification_ctrl.handle_send_notification,
@@ -184,6 +193,18 @@ def route(path: str, *args: Any, **kwargs: Any) -> Any:
 
 
 class RequestHandler(BaseHTTPRequestHandler):
+    def _send_cors_headers(self) -> None:
+        """Send CORS headers allowing browser access from any origin."""
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+    def do_OPTIONS(self) -> None:
+        """Handle preflight CORS requests."""
+        self.send_response(204)
+        self._send_cors_headers()
+        self.end_headers()
+
     def do_POST(self) -> None:
         parsed_path = urlparse(self.path)
         path = parsed_path.path
@@ -198,6 +219,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         result = route(path, *req_args, **req_kwargs)
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
+        self._send_cors_headers()
         self.end_headers()
         self.wfile.write(json.dumps(result).encode('utf-8'))
 
@@ -210,11 +232,21 @@ class RequestHandler(BaseHTTPRequestHandler):
         result = route(path, *req_args, **req_kwargs)
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
+        self._send_cors_headers()
         self.end_headers()
         self.wfile.write(json.dumps(result).encode('utf-8'))
 
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+        """Suppress default access log to reduce noise."""
+        pass
+
 
 def run_server(port: int = 8000) -> None:
+    import db as _db
+    try:
+        _db.init_schema()
+    except Exception as exc:
+        print(f"[db] Schema init warning: {exc}")
     server_address = ('', port)
     httpd = HTTPServer(server_address, RequestHandler)
     print(f'Server running on port {port}...')

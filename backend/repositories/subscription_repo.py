@@ -1,29 +1,30 @@
 import uuid
-from typing import List
-from models.subscription_model import Subscription
+from typing import Any, Dict, List
+import db
 
 
 class SubscriptionRepository:
-    _subscriptions: List[Subscription] = []  # In-memory (replace with DB in production)
 
     @staticmethod
     def insert_subscription(user_id: str, tier: str, start_date: str, end_date: str) -> str:
-        """Create a subscription record for a user. Returns the new subscription ID."""
         subscription_id = str(uuid.uuid4())
-        SubscriptionRepository._subscriptions.append(Subscription(
-            id=subscription_id,
-            user_id=user_id,
-            tier=tier,
-            start_date=start_date,
-            end_date=end_date,
-        ))
+        db.execute(
+            "INSERT INTO subscriptions (id, user_id, tier, start_date, end_date) VALUES (%s, %s, %s, %s, %s)",
+            (subscription_id, user_id, tier, start_date, end_date),
+        )
         return subscription_id
 
     @staticmethod
     def delete_subscription(subscription_id: str) -> bool:
-        """Remove a subscription record. Returns True if found."""
-        for sub in SubscriptionRepository._subscriptions:
-            if sub.id == subscription_id:
-                SubscriptionRepository._subscriptions.remove(sub)
-                return True
-        return False
+        rows = db.query("SELECT id FROM subscriptions WHERE id = %s", (subscription_id,))
+        if not rows:
+            return False
+        db.execute("DELETE FROM subscriptions WHERE id = %s", (subscription_id,))
+        return True
+
+    @staticmethod
+    def get_by_user(user_id: str) -> List[Dict[str, Any]]:
+        return db.query(
+            "SELECT id, user_id, tier, start_date, end_date, status, created_at::text AS created_at FROM subscriptions WHERE user_id = %s ORDER BY created_at",
+            (user_id,),
+        )

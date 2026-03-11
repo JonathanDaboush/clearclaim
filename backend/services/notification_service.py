@@ -44,5 +44,16 @@ class NotificationService:
         return NotificationRepository.mark_read(notification_id)
 
     def get_user_notifications(self, user_id: str) -> List[Dict[str, Any]]:
-        """Return all notifications for a user."""
-        return [vars(n) for n in NotificationRepository.get_by_user(user_id)]
+        """Return all notifications for a user in the shape the frontend expects."""
+        notifications = NotificationRepository.get_by_user(user_id)
+        return [
+            {
+                "id": n.id,
+                "user_id": n.user_id,
+                "type": n.event_type,
+                "message": n.content,
+                "is_read": n.read_at is not None,
+                "created_at": n.sent_at,
+            }
+            for n in notifications
+        ]

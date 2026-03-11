@@ -1,53 +1,43 @@
 import uuid
-import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+import db
 
 
 class DevicesRepository:
-    _devices: List[Dict[str, Any]] = []  # In-memory (replace with DB in production)
 
     @staticmethod
     def add_device(user_id: str, device_info: str) -> str:
-        """Register a new device for a user as untrusted pending verification. Returns its ID."""
         device_id = str(uuid.uuid4())
-        DevicesRepository._devices.append({
-            "id": device_id,
-            "user_id": user_id,
-            "device_info": device_info,
-            "trusted": False,  # Must pass authenticator + email verification before trusted
-            "added_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "revoked": False,
-        })
+        db.execute(
+            "INSERT INTO devices (id, user_id, device_info) VALUES (%s, %s, %s)",
+            (device_id, user_id, device_info),
+        )
         return device_id
 
     @staticmethod
     def mark_trusted(device_id: str) -> bool:
-        """Mark a device as trusted after authenticator + email verification. Returns True if found."""
-        for device in DevicesRepository._devices:
-            if device["id"] == device_id and not device["revoked"]:
-                device["trusted"] = True
-                return True
-        return False
+        rows = db.query("SELECT id FROM devices WHERE id = %s AND revoked = FALSE", (device_id,))
+        if not rows:
+            return False
+        db.execute("UPDATE devices SET trusted = TRUE WHERE id = %s", (device_id,))
+        return True
 
     @staticmethod
     def revoke_device(device_id: str) -> bool:
-        """Revoke a device so it can no longer sign or authenticate. Returns True if found."""
-        for device in DevicesRepository._devices:
-            if device["id"] == device_id and not device["revoked"]:
-                device["revoked"] = True
-                device["trusted"] = False
-                return True
-        return False
+        rows = db.query("SELECT id FROM devices WHERE id = %s AND revoked = FALSE", (device_id,))
+        if not rows:
+            return False
+        db.execute("UPDATE devices SET revoked = TRUE, trusted = FALSE WHERE id = %s", (device_id,))
+        return True
 
     @staticmethod
     def get_by_user(user_id: str) -> List[Dict[str, Any]]:
-        """Return all device records for a given user."""
-        return [d for d in DevicesRepository._devices if d["user_id"] == user_id]
+        return db.query(
+            "SELECT id, user_id, device_info, trusted, added_at::text AS added_at, revoked FROM devices WHERE user_id = %s ORDER BY added_at",
+            (user_id,),
+        )
 
     @staticmethod
     def is_trusted(device_id: str) -> bool:
-        """Return True if the device is registered, trusted, and not revoked."""
-        for device in DevicesRepository._devices:
-            if device["id"] == device_id:
-                return bool(device["trusted"] and not device["revoked"])
-        return False
+        rows = db.query("SELECT trusted FROM devices WHERE id = %s AND revoked = FALSE", (device_id,))
+        return bool(rows and rows[0]["trusted"])

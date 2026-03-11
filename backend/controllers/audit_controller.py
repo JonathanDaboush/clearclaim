@@ -37,3 +37,32 @@ def generate_audit_snapshot() -> str:
 def archive_audit_snapshot(snapshot_hash: str) -> None:
     """Controller for archiving audit snapshot."""
     audit_service.archive_audit_snapshot(snapshot_hash)
+
+def get_audit_entries(related_object_id: str = "", limit: str = "50") -> list:
+    """Return audit log entries, optionally filtered by related_object_id."""
+    from repositories.audit_repo import AuditRepository
+    try:
+        n = int(limit)
+    except (ValueError, TypeError):
+        n = 50
+    entries = AuditRepository.get_chain(
+        related_object_id=related_object_id or None,
+        limit=n,
+    )
+    return [
+        {
+            "id": e.id,
+            "user_id": e.user_id,
+            "device_id": e.device_id,
+            "event_type": e.event_type,
+            "related_object_id": e.related_object_id,
+            "contract_id": e.contract_id,
+            "contract_version_id": e.contract_version_id,
+            "details": e.details,
+            "timestamp": e.timestamp,
+            "prev_hash": e.prev_hash,
+            "hash": e.hash,
+            "snapshot_hash": e.snapshot_hash,
+        }
+        for e in entries
+    ]

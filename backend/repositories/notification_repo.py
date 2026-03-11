@@ -1,46 +1,61 @@
 import uuid
 import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+import db
 from models.notification_model import Notification
 
 
 class NotificationRepository:
-    _notifications: List[Notification] = []  # In-memory (replace with DB in production)
 
     @staticmethod
-    def insert_notification(user_id: str, event_type: str, content: str, related_object_id: str, related_object_type: str, sent_at: str) -> str:
-        """Store a notification record. Returns the new notification ID."""
+    def insert_notification(
+        user_id: str,
+        event_type: str,
+        content: str,
+        related_object_id: str,
+        related_object_type: str,
+        sent_at: str,
+    ) -> str:
         notification_id = str(uuid.uuid4())
-        NotificationRepository._notifications.append(Notification(
-            id=notification_id,
-            user_id=user_id,
-            event_type=event_type,
-            content=content,
-            related_object_id=related_object_id,
-            related_object_type=related_object_type,
-            sent_at=sent_at,
-        ))
+        db.execute(
+            "INSERT INTO notifications (id, user_id, event_type, content, related_object_id, related_object_type, sent_at) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (notification_id, user_id, event_type, content, related_object_id, related_object_type, sent_at),
+        )
         return notification_id
 
     @staticmethod
     def mark_read(notification_id: str) -> bool:
-        """Mark a notification as read by setting read_at to the current UTC time. Returns True if found."""
-        for n in NotificationRepository._notifications:
-            if n.id == notification_id and n.read_at is None:
-                n.read_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
-                return True
-        return False
+        rows = db.query("SELECT id FROM notifications WHERE id = %s AND read_at IS NULL", (notification_id,))
+        if not rows:
+            return False
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        db.execute("UPDATE notifications SET read_at = %s WHERE id = %s", (now, notification_id))
+        return True
 
     @staticmethod
     def delete_notification(notification_id: str) -> bool:
-        """Remove a notification record. Returns True if found."""
-        for n in NotificationRepository._notifications:
-            if n.id == notification_id:
-                NotificationRepository._notifications.remove(n)
-                return True
-        return False
+        rows = db.query("SELECT id FROM notifications WHERE id = %s", (notification_id,))
+        if not rows:
+            return False
+        db.execute("DELETE FROM notifications WHERE id = %s", (notification_id,))
+        return True
 
     @staticmethod
     def get_by_user(user_id: str) -> List[Notification]:
-        """Return all notification records for a given user."""
-        return [n for n in NotificationRepository._notifications if n.user_id == user_id]
+        rows = db.query(
+            "SELECT id, user_id, event_type, content, related_object_id, related_object_type, sent_at, read_at FROM notifications WHERE user_id = %s ORDER BY sent_at DESC",
+            (user_id,),
+        )
+        return [
+            Notification(
+                id=r["id"],
+                user_id=r["user_id"],
+                event_type=r["event_type"],
+                content=r["content"],
+                related_object_id=r["related_object_id"],
+                related_object_type=r["related_object_type"],
+                sent_at=r["sent_at"],
+                read_at=r.get("read_at"),
+            )
+            for r in rows
+        ]

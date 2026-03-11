@@ -1,51 +1,71 @@
 import uuid
-import datetime
-from typing import List
+from typing import Any, Dict, List
+import db
 from models.membership_model import Membership
 
 
 class MembershipRepository:
-    _memberships: List[Membership] = []  # In-memory (replace with DB in production)
+
+    @staticmethod
+    def _to_obj(row: Dict[str, Any]) -> Membership:
+        return Membership(
+            id=row["id"],
+            user_id=row["user_id"],
+            project_id=row["project_id"],
+            subgroup_id=row["subgroup_id"],
+            role_id=row["role_id"],
+            left_at=row.get("left_at"),
+            soft_deleted=bool(row.get("soft_deleted", False)),
+        )
 
     @staticmethod
     def insert_membership(user_id: str, project_id: str, subgroup_id: str, role_id: str) -> str:
-        """Add a user to a project/subgroup with a role. Returns the new membership ID."""
         membership_id = str(uuid.uuid4())
-        MembershipRepository._memberships.append(Membership(
-            id=membership_id,
-            user_id=user_id,
-            project_id=project_id,
-            subgroup_id=subgroup_id,
-            role_id=role_id,
-        ))
+        db.execute(
+            "INSERT INTO memberships (id, user_id, project_id, subgroup_id, role_id) VALUES (%s, %s, %s, %s, %s)",
+            (membership_id, user_id, project_id, subgroup_id, role_id),
+        )
         return membership_id
 
     @staticmethod
     def soft_delete_membership(membership_id: str) -> bool:
-        """Soft-delete a membership by setting left_at and soft_deleted=True.
-        Historical participation is preserved per specs."""
-        for m in MembershipRepository._memberships:
-            if m.id == membership_id and not m.soft_deleted:
-                m.soft_deleted = True
-                m.left_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
-                return True
-        return False
+        rows = db.query("SELECT id FROM memberships WHERE id = %s AND soft_deleted = FALSE", (membership_id,))
+        if not rows:
+            return False
+        db.execute(
+            "UPDATE memberships SET soft_deleted = TRUE, left_at = NOW() WHERE id = %s",
+            (membership_id,),
+        )
+        return True
 
     @staticmethod
     def delete_membership(membership_id: str) -> bool:
-        """Hard-remove a membership record. Use soft_delete_membership for leaving users."""
-        for m in MembershipRepository._memberships:
-            if m.id == membership_id:
-                MembershipRepository._memberships.remove(m)
-                return True
-        return False
+        rows = db.query("SELECT id FROM memberships WHERE id = %s", (membership_id,))
+        if not rows:
+            return False
+        db.execute("DELETE FROM memberships WHERE id = %s", (membership_id,))
+        return True
 
     @staticmethod
     def get_by_project(project_id: str) -> List[Membership]:
-        """Return all active (non-soft-deleted) memberships for a given project."""
-        return [m for m in MembershipRepository._memberships if m.project_id == project_id and not m.soft_deleted]
+        rows = db.query(
+            "SELECT id, user_id, project_id, subgroup_id, role_id, soft_deleted, left_at::text AS left_at FROM memberships WHERE project_id = %s AND soft_deleted = FALSE",
+            (project_id,),
+        )
+        return [MembershipRepository._to_obj(r) for r in rows]
 
     @staticmethod
     def get_all_by_project(project_id: str) -> List[Membership]:
-        """Return all memberships (including left users) for a project, for audit purposes."""
-        return [m for m in MembershipRepository._memberships if m.project_id == project_id]
+        rows = db.query(
+            "SELECT id, user_id, project_id, subgroup_id, role_id, soft_deleted, left_at::text AS left_at FROM memberships WHERE project_id = %s",
+            (project_id,),
+        )
+        return [MembershipRepository._to_obj(r) for r in rows]
+
+    @staticmethod
+    def get_by_user(user_id: str) -> List[Membership]:
+        rows = db.query(
+            "SELECT id, user_id, project_id, subgroup_id, role_id, soft_deleted, left_at::text AS left_at FROM memberships WHERE user_id = %s AND soft_deleted = FALSE",
+            (user_id,),
+        )
+        return [MembershipRepository._to_obj(r) for r in rows]

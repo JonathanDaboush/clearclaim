@@ -56,3 +56,16 @@ def store_identity_verification_result(user_id: str, provider: str, status: str)
 def check_identity_verification_status(user_id: str) -> Dict[str, Any]:
     """Return the current identity verification status for a user."""
     return auth_service.check_identity_verification_status(user_id)
+
+def get_me(user_id: str) -> Dict[str, Any]:
+    """Return basic profile info for the authenticated user."""
+    from repositories.users_repo import UsersRepository
+    user = UsersRepository.get_user_by_id(user_id)
+    if not user:
+        return {"error": "User not found"}
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "role_id": user.get("role_id"),
+        "verification_status": user.get("verification_status", "unverified"),
+    }

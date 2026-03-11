@@ -2,7 +2,7 @@ import jwt
 from typing import Optional
 
 class User:
-    def __init__(self, id: str, email: str, password_hash: str, authenticator_enabled: bool, role_id: Optional[str], verification_status: str):
+    def __init__(self, id: str, email: str, password_hash: str, authenticator_enabled: bool, role_id: Optional[str], verification_status: str, totp_secret: str = ""):
         """
         User entity.
         Args:
@@ -12,6 +12,7 @@ class User:
             authenticator_enabled (bool): 2FA enabled
             role_id (str): Role identifier
             verification_status (str): Verification state
+            totp_secret (str): TOTP shared secret for 2FA
         """
         self.id = id
         self.email = email
@@ -19,6 +20,7 @@ class User:
         self.authenticator_enabled = authenticator_enabled
         self.role_id = role_id
         self.verification_status = verification_status
+        self.totp_secret = totp_secret
 
     def validate_email(self, email: str) -> bool:
         """
