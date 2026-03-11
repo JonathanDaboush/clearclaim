@@ -25,6 +25,8 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
   const [copied, setCopied] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [pinchStartDist, setPinchStartDist] = useState<number | null>(null);
+  const [pinchStartZoom, setPinchStartZoom] = useState(1);
 
   const isImage = (ev.file_type ?? '').startsWith('image/');
   const isVideo = (ev.file_type ?? '').startsWith('video/');
@@ -175,8 +177,26 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
         onMouseLeave={onMouseUp}
         style={{ cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default' }}
         onDoubleClick={() => zoom === 1 ? setZoom(2) : reset()}
-        onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+        onTouchStart={(e) => {
+          if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            setPinchStartDist(Math.hypot(dx, dy));
+            setPinchStartZoom(zoom);
+          } else {
+            setTouchStartX(e.touches[0].clientX);
+          }
+        }}
+        onTouchMove={(e) => {
+          if (e.touches.length === 2 && pinchStartDist !== null) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.hypot(dx, dy);
+            setZoom(Math.min(Math.max(pinchStartZoom * (dist / pinchStartDist), 0.5), 4));
+          }
+        }}
         onTouchEnd={(e) => {
+          if (e.touches.length < 2) setPinchStartDist(null);
           if (touchStartX === null) return;
           const delta = e.changedTouches[0].clientX - touchStartX;
           if (delta > 50 && hasPrev) onPrev();
@@ -244,7 +264,7 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
         {ev.file_hash && <span><span className="text-white/40">Hash:</span> <span className="font-mono">{ev.file_hash.slice(0, 24)}…</span></span>}
         {ev.file_size && <span><span className="text-white/40">Size:</span> {(ev.file_size / 1024).toFixed(1)} KB</span>}
         <span><span className="text-white/40">Contract:</span> <span className="font-mono">{ev.contract_id.slice(0, 16)}…</span></span>
-        <span className="text-white/40 ml-auto">← → navigate · swipe · scroll/+− zoom · 0 reset · Esc close</span>
+        <span className="text-white/40 ml-auto">← → navigate · swipe · pinch/scroll/+− zoom · 0 reset · Esc close</span>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -165,4 +166,75 @@
   .nav-link-active {
     @apply nav-link bg-accent-light text-accent font-medium;
   }
+}
+
+/* ── Accessibility overrides ────────────────────────────────────────────────── */
+/* Applied by AccountPage when user enables accessibility preferences           */
+
+html.high-contrast {
+  --color-bg: #000000;
+  --color-card: #111111;
+  --color-section: #1a1a1a;
+  --color-border: #666666;
+  --color-primary: #ffffff;
+  --color-secondary: #dddddd;
+  --color-meta: #aaaaaa;
+  --color-accent: #66aaff;
+  --color-accent-hover: #88bbff;
+  --color-confirmed: #44ff88;
+  --color-pending: #ffdd44;
+  --color-disputed: #ff6666;
+}
+
+html.high-contrast body {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+html.high-contrast .card {
+  background-color: #111111;
+  border-color: #666666;
+}
+
+html.high-contrast .card-header,
+html.high-contrast .bg-section,
+html.high-contrast .section-block {
+  background-color: #1a1a1a;
+}
+
+html.high-contrast .form-input,
+html.high-contrast .form-textarea {
+  background-color: #111111;
+  color: #ffffff;
+  border-color: #666666;
+}
+
+html.high-contrast a,
+html.high-contrast .text-accent { color: #66aaff; }
+html.high-contrast .text-primary { color: #ffffff; }
+html.high-contrast .text-secondary { color: #dddddd; }
+html.high-contrast .text-meta { color: #aaaaaa; }
+
+html.large-text {
+  font-size: 20px;
+}
+
+html.large-text .text-xs  { font-size: 0.85rem; }
+html.large-text .text-sm  { font-size: 1rem; }
+html.large-text .text-base { font-size: 1.15rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }

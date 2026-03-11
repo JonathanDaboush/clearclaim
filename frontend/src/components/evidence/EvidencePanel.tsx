@@ -52,6 +52,9 @@ export function EvidencePanel({ contractId, canAdd, canRequestDeletion, canAppro
   const [activeItem,   setActiveItem]   = useState<EvidenceData | null>(null);
   const [file,         setFile]         = useState<File | null>(null);
   const [fileError,    setFileError]    = useState('');
+  const [search,       setSearch]       = useState('');
+  const [typeFilter,   setTypeFilter]   = useState<string>('all');
+  const [selected,     setSelected]     = useState<Set<string>>(new Set());
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['evidence', contractId],
@@ -105,7 +108,39 @@ export function EvidencePanel({ contractId, canAdd, canRequestDeletion, canAppro
     if (!err) setFile(f);
   };
 
-  if (isLoading) return <p className="text-sm text-secondary py-4">Loading evidenceâ€¦</p>;
+  if (isLoading) return <p className="text-sm text-secondary py-4">Loading evidence…</p>;
+
+  const typeOptions = ['all', 'image', 'video', 'document', 'note'];
+  const filteredItems = (items as EvidenceData[]).filter((item) => {
+    const matchesSearch = !search || item.file_url.toLowerCase().includes(search.toLowerCase()) || item.added_by.toLowerCase().includes(search.toLowerCase());
+    const matchesType = typeFilter === 'all' || (item.file_type ?? '').startsWith(typeFilter === 'image' ? 'image/' : typeFilter === 'video' ? 'video/' : typeFilter === 'document' ? 'application/' : 'text/');
+    return matchesSearch && matchesType;
+  });
+
+  const toggleSelect = (id: string) => setSelected((s) => {
+    const next = new Set(s);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const exportSelected = () => {
+    const toExport = filteredItems.filter((e) => selected.has(e.id));
+    const pkg = {
+      exported_at: new Date().toISOString(),
+      contract_id: contractId,
+      item_count: toExport.length,
+      items: toExport.map((e) => ({
+        id: e.id, file_url: e.file_url, file_type: e.file_type,
+        file_hash: e.file_hash, added_by: e.added_by, created_at: e.created_at,
+        status: e.status,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `evidence-export-${contractId.slice(0, 8)}.json`;
+    a.click();
+  };
 
   return (
     <>
@@ -126,12 +161,53 @@ export function EvidencePanel({ contractId, canAdd, canRequestDeletion, canAppro
         </div>
 
         <div className="divide-y divide-border">
-          {items.length === 0 && (
-            <p className="px-5 py-4 text-sm text-secondary">No evidence on record.</p>
+          {/* Search + filter bar */}
+          <div className="px-5 py-3 flex flex-wrap gap-2 items-center bg-section">
+            <input
+              type="search"
+              placeholder="Search evidence…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="form-input text-xs h-8 flex-1 min-w-32"
+            />
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="form-input text-xs h-8 w-32"
+            >
+              {typeOptions.map((t) => <option key={t} value={t}>{t === 'all' ? 'All types' : t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            </select>
+            {selected.size > 0 && (
+              <Button size="sm" variant="secondary" onClick={exportSelected}>
+                Export {selected.size} selected
+              </Button>
+            )}
+            {filteredItems.length > 0 && (
+              <button
+                className="text-xs text-accent hover:text-accent-hover"
+                onClick={() => {
+                  if (selected.size === filteredItems.length) setSelected(new Set());
+                  else setSelected(new Set(filteredItems.map((e) => e.id)));
+                }}
+              >
+                {selected.size === filteredItems.length ? 'Deselect all' : 'Select all'}
+              </button>
+            )}
+          </div>
+
+          {filteredItems.length === 0 && (
+            <p className="px-5 py-4 text-sm text-secondary">{items.length === 0 ? 'No evidence on record.' : 'No evidence matches your search.'}</p>
           )}
-          {(items as EvidenceData[]).map((item) => (
+          {filteredItems.map((item) => (
             <div key={item.id} className="px-5 py-4">
               <div className="flex items-start gap-4">
+                <input
+                  type="checkbox"
+                  checked={selected.has(item.id)}
+                  onChange={() => toggleSelect(item.id)}
+                  className="mt-1 shrink-0 w-4 h-4 accent-accent"
+                  aria-label={`Select evidence ${item.id}`}
+                />
                 <div className="w-8 h-8 rounded bg-section flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4 text-meta" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

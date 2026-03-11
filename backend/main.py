@@ -108,6 +108,7 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/evidence/approve_deletion': evidence_ctrl.approve_evidence_deletion,
     '/evidence/delete': evidence_ctrl.delete_evidence,
     '/evidence/get_contract_evidence': evidence_ctrl.get_contract_evidence,
+    '/evidence/get_user_evidence': evidence_ctrl.get_user_evidence,
 
     # ── Signing ─────────────────────────────────────────────────────────────────
     '/signing/request': signing_ctrl.request_signature,

@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS memberships (
 CREATE TABLE IF NOT EXISTS contracts (
     id              TEXT PRIMARY KEY,
     project_id      TEXT NOT NULL,
+    name            TEXT NOT NULL DEFAULT 'Untitled Contract',
     created_by      TEXT NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     current_version TEXT,
@@ -211,4 +212,11 @@ CREATE TABLE IF NOT EXISTS identity_verifications (
     provider  TEXT NOT NULL DEFAULT '',
     status    TEXT NOT NULL DEFAULT 'unverified',
     timestamp TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS user_restrictions (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL UNIQUE,
+    reason     TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

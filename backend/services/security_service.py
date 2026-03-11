@@ -1,12 +1,10 @@
+import uuid
 from typing import Dict, Any
+import db
 from repositories.devices_repo import DevicesRepository
 from services.audit_service import AuditService
 from services.notification_service import NotificationService
 from services.async_tasks import AsyncTasks
-
-
-# In-memory store for temporarily restricted users (replace with DB in production)
-_restricted_users: Dict[str, str] = {}  # user_id -> reason
 
 
 class SecurityService:
@@ -23,13 +21,13 @@ class SecurityService:
             "suspicious_activity",
             f"Suspicious activity detected: {event_type}. Sensitive actions temporarily restricted. Contact support if this wasn't you.",
         )
-        _restricted_users[user_id] = event_type
+        self._db_restrict(user_id, event_type)
         AsyncTasks.detect_suspicious_activity_async(user_id, event_type)
         return {"status": "Suspicious activity flagged", "restricted": True, "event_type": event_type}
 
     def restrict_actions(self, user_id: str, reason: str) -> Dict[str, Any]:
         """Temporarily restrict a user's sensitive actions (signing, device changes)."""
-        _restricted_users[user_id] = reason
+        self._db_restrict(user_id, reason)
         AuditService().log_event("actions_restricted", user_id, {"reason": reason})
         NotificationService().create_notification(
             user_id,
@@ -40,14 +38,24 @@ class SecurityService:
 
     def lift_restriction(self, user_id: str) -> Dict[str, Any]:
         """Remove temporary action restrictions from a user."""
-        _restricted_users.pop(user_id, None)
+        db.execute("DELETE FROM user_restrictions WHERE user_id = %s", (user_id,))
         AuditService().log_event("restriction_lifted", user_id, {})
         NotificationService().create_notification(user_id, "restriction_lifted", "Your account restrictions have been lifted.")
         return {"status": "Restrictions lifted", "user_id": user_id}
 
     def is_restricted(self, user_id: str) -> bool:
         """Return True if the user currently has restricted sensitive actions."""
-        return user_id in _restricted_users
+        rows = db.query("SELECT id FROM user_restrictions WHERE user_id = %s", (user_id,))
+        return len(rows) > 0
+
+    def _db_restrict(self, user_id: str, reason: str) -> None:
+        """Upsert a restriction record in DB so it survives server restarts."""
+        restriction_id = str(uuid.uuid4())
+        db.execute(
+            "INSERT INTO user_restrictions (id, user_id, reason) VALUES (%s, %s, %s) "
+            "ON CONFLICT (user_id) DO UPDATE SET reason = EXCLUDED.reason, created_at = NOW()",
+            (restriction_id, user_id, reason),
+        )
 
     def recover_device(self, user_id: str, new_device_info: str) -> Dict[str, Any]:
         """Support device recovery: register a new trusted device after identity verification.

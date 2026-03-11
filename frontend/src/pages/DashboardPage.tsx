@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { notificationsApi, type NotificationData } from '@/api/notifications';
 import { projectsApi } from '@/api/projects';
 import { billingApi } from '@/api/billing';
+import { evidenceApi, type EvidenceData } from '@/api/evidence';
 import { useAuthStore } from '@/stores/authStore';
 import { format } from 'date-fns';
 
@@ -27,12 +28,19 @@ export default function DashboardPage() {
     enabled: !!session?.user_id,
   });
 
+  const { data: recentEvidence = [] } = useQuery<EvidenceData[]>({
+    queryKey: ['all-evidence', session?.user_id],
+    queryFn: () => evidenceApi.getAll(session!.user_id),
+    enabled: !!session?.user_id,
+  });
+
   const unread = notifications.filter((n) => !n.is_read);
+  // Match actual types emitted by the backend notification service
   const securityAlerts = notifications.filter(
-    (n) => !n.is_read && ['new_device', 'security_alert', 'identity_check'].includes(n.type)
+    (n) => !n.is_read && ['suspicious_activity', 'actions_restricted', 'device_recovery'].includes(n.type)
   );
   const pendingSignatures = notifications.filter(
-    (n) => !n.is_read && n.type === 'signature_required'
+    (n) => !n.is_read && n.type === 'signature_request'
   );
   const billingWarning =
     billingMetrics?.subscription_status &&
@@ -110,10 +118,28 @@ export default function DashboardPage() {
               <h2 className="text-sm font-semibold text-primary">Recent Evidence</h2>
               <Link to="/evidence" className="text-xs text-accent hover:text-accent-hover">Evidence library</Link>
             </div>
-            <div className="card-body py-6 text-center">
-              <p className="text-xs text-meta">Open a project to view and upload evidence.</p>
-              <Link to="/projects" className="text-xs text-accent hover:text-accent-hover mt-1 inline-block">Go to Projects</Link>
-            </div>
+            {recentEvidence.length === 0 ? (
+              <div className="card-body py-6 text-center">
+                <p className="text-xs text-meta">No evidence uploaded yet.</p>
+                <Link to="/projects" className="text-xs text-accent hover:text-accent-hover mt-1 inline-block">Go to Projects</Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {recentEvidence.slice(0, 4).map((ev) => (
+                  <div key={ev.id} className="px-5 py-3 flex items-center gap-3">
+                    <div className="w-7 h-7 rounded bg-accent-light flex items-center justify-center shrink-0">
+                      <svg className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-primary truncate">{ev.file_url.split('/').pop() ?? ev.id}</p>
+                      <p className="text-xs text-meta">{ev.created_at ? format(new Date(ev.created_at), 'dd MMM yyyy') : '—'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
           <section className="card">
             <div className="card-header flex items-center justify-between">

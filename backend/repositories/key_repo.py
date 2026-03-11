@@ -9,6 +9,15 @@ class KeyRepository:
 
     @staticmethod
     def insert_key(key_type: str, parent_id: Optional[str] = None) -> str:
+        # Enforce key hierarchy: system keys must have a root parent; session keys must have a system parent
+        if key_type == 'system' and parent_id:
+            parent_rows = db.query("SELECT type FROM keys WHERE id = %s AND status = 'active'", (parent_id,))
+            if not parent_rows or parent_rows[0]['type'] != 'root':
+                raise ValueError("A system key's parent must be an active root key.")
+        elif key_type == 'session' and parent_id:
+            parent_rows = db.query("SELECT type FROM keys WHERE id = %s AND status = 'active'", (parent_id,))
+            if not parent_rows or parent_rows[0]['type'] != 'system':
+                raise ValueError("A session key's parent must be an active system key.")
         key_id = str(uuid.uuid4())
         db.execute(
             "INSERT INTO keys (id, type, parent_id) VALUES (%s, %s, %s)",

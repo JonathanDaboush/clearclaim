@@ -72,7 +72,9 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
         version.id,
         session!.user_id,
         session!.device_id || '',
-        ''
+        '',
+        session!.totp_secret,
+        totpCode
       );
       return result;
     },

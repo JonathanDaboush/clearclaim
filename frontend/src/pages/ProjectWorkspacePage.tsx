@@ -25,6 +25,7 @@ export default function ProjectWorkspacePage() {
   const [tab,             setTab]            = useState<Tab>('timeline');
   const [createOpen,      setCreateOpen]     = useState(false);
   const [contractContent, setContractContent] = useState('');
+  const [contractName,    setContractName]    = useState('');
   const [inviteOpen,      setInviteOpen]     = useState(false);
   const [inviteEmail,     setInviteEmail]    = useState('');
   const [inviteRole,      setInviteRole]     = useState('worker');
@@ -71,12 +72,13 @@ export default function ProjectWorkspacePage() {
   });
 
   const createContractMutation = useMutation({
-    mutationFn: () => contractsApi.create(projectId!, session!.user_id, contractContent),
+    mutationFn: () => contractsApi.create(projectId!, session!.user_id, contractContent, contractName.trim() || 'Untitled Contract'),
     onSuccess: (res) => {
       toast.success('Contract created.');
       qc.invalidateQueries({ queryKey: ['project-contracts', projectId] });
       setCreateOpen(false);
       setContractContent('');
+      setContractName('');
       navigate(`/projects/${projectId}/contracts/${res.contract_id}`);
     },
     onError: () => toast.error('Failed to create contract.'),
@@ -181,7 +183,7 @@ export default function ProjectWorkspacePage() {
               >
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium text-primary">Contract</p>
+                    <p className="text-sm font-medium text-primary">{contract.name || 'Untitled Contract'}</p>
                     {contract.current_version && (
                       <span className="text-xs text-accent font-medium">v{contract.current_version}</span>
                     )}
@@ -419,6 +421,18 @@ export default function ProjectWorkspacePage() {
           <div className="legal-notice text-xs">
             The contract text you provide will form the initial version (v1). All parties must
             sign this version. Changes must be proposed as revisions and require unanimous approval.
+          </div>
+
+          <div>
+            <label className="form-label">Contract Name</label>
+            <input
+              type="text"
+              value={contractName}
+              onChange={(e) => setContractName(e.target.value)}
+              className="form-input"
+              placeholder="e.g. Service Agreement 2025"
+              maxLength={200}
+            />
           </div>
 
           <div>

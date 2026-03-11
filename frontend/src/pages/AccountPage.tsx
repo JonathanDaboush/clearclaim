@@ -22,10 +22,25 @@ function loadA11y(): A11yPrefs {
 }
 function saveA11y(p: A11yPrefs) {
   localStorage.setItem(A11Y_KEY, JSON.stringify(p));
-  // Apply immediately
+  // Apply immediately to <html> element
   document.documentElement.classList.toggle('high-contrast', p.highContrast);
   document.documentElement.classList.toggle('reduce-motion', p.reducedMotion);
   document.documentElement.classList.toggle('large-text', p.largeText);
+  // screen-reader: add aria-live region if not present, so SR is alerted on navigation
+  document.documentElement.classList.toggle('screen-reader-mode', p.screenReader);
+  if (p.screenReader) {
+    if (!document.getElementById('cc-sr-announcer')) {
+      const el = document.createElement('div');
+      el.id = 'cc-sr-announcer';
+      el.setAttribute('aria-live', 'polite');
+      el.setAttribute('aria-atomic', 'true');
+      el.style.cssText = 'position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0';
+      document.body.appendChild(el);
+    }
+  }
+  // captions: store in sessionStorage so video players can read it
+  sessionStorage.setItem('cc_captions', p.captions ? '1' : '0');
+  document.documentElement.classList.toggle('captions-enabled', p.captions);
 }
 
 export default function AccountPage() {

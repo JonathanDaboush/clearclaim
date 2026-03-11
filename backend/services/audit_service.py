@@ -14,8 +14,10 @@ class AuditService:
             user_id=user_id,
             device_id=str(details.get("device_id") or ""),
             event_type=event_type,
-            related_object_id=str(details.get("related_object_id") or "") or None,
+            related_object_id=str(details.get("related_object_id") or details.get("contract_id") or details.get("evidence_id") or details.get("version_id") or "") or None,
             details=str(details),
+            contract_id=str(details.get("contract_id") or ""),
+            contract_version_id=str(details.get("version_id") or details.get("contract_version_id") or ""),
         )
         return {"status": "Event logged", "log_id": log_id}
 

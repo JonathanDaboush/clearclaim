@@ -8,9 +8,9 @@ from services.notification_service import NotificationService
 
 
 class ContractService:
-    def create_contract(self, project_id: str, created_by: str, content: str) -> Dict[str, Any]:
+    def create_contract(self, project_id: str, created_by: str, content: str, name: str = 'Untitled Contract') -> Dict[str, Any]:
         """Create a contract and its first version."""
-        contract_id = ContractsRepository.create_contract(project_id, created_by)
+        contract_id = ContractsRepository.create_contract(project_id, created_by, name)
         version_id = ContractVersionsRepository.create_contract_version(contract_id, content, created_by)
         ContractsRepository.update_current_version(contract_id, version_id)
         AuditService().log_event("create_contract", created_by, {"project_id": project_id, "contract_id": contract_id})
@@ -68,8 +68,14 @@ class ContractService:
         """Return True if all required parties have approved the revision."""
         return ContractVersionsRepository.check_unanimous(contract_version_id, required_user_ids)
 
-    def activate_contract_version(self, contract_id: str, contract_version_id: str) -> Dict[str, Any]:
-        """Set a unanimously approved version as the contract's current version."""
+    def activate_contract_version(self, contract_id: str, contract_version_id: str, required_user_ids: Set[str] = None) -> Dict[str, Any]:
+        """Set a unanimously approved version as the contract's current version.
+        Raises an error if not all required parties have approved."""
+        if required_user_ids is None:
+            required_user_ids = set()
+        # Check unanimous approval before activating (spec §2)
+        if required_user_ids and not self.check_revision_unanimous_approval(contract_version_id, required_user_ids):
+            return {"status": "error", "message": "Unanimous approval required from all parties before activation."}
         ContractsRepository.update_current_version(contract_id, contract_version_id)
         AuditService().log_event("activate_contract_version", "system", {"contract_id": contract_id, "version_id": contract_version_id})
         return {"status": "Contract version activated"}

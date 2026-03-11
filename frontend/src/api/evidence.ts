@@ -39,4 +39,8 @@ export const evidenceApi = {
   /** GET /evidence/get_contract_evidence ?contract_id=... */
   getContractEvidence: (contract_id: string) =>
     rpcGet<EvidenceData[]>('/evidence/get_contract_evidence', { contract_id }),
+
+  /** GET /evidence/get_user_evidence ?user_id=... */
+  getAll: (user_id: string) =>
+    rpcGet<EvidenceData[]>('/evidence/get_user_evidence', { user_id }),
 };

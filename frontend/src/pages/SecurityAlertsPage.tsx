@@ -8,9 +8,9 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { toast } from 'react-toastify';
 
 const SECURITY_TYPES = new Set([
-  'new_device', 'security_alert', 'identity_check',
-  'suspicious_login', 'failed_signing', 'unusual_location',
-  'device_revoked',
+  // Types actually emitted by the backend's SecurityService and related services
+  'suspicious_activity', 'actions_restricted', 'device_recovery',
+  'restriction_lifted', 'security_alert',
 ]);
 
 export default function SecurityAlertsPage() {

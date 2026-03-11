@@ -4,12 +4,17 @@ from services.contract_service import ContractService
 
 contract_service = ContractService()
 
-def create_contract(project_id: str, created_by: str, content: str) -> Dict[str, Any]:
+def create_contract(project_id: str, created_by: str, content: str, name: str = 'Untitled Contract') -> Dict[str, Any]:
     """Controller for creating contract."""
-    return contract_service.create_contract(project_id, created_by, content)
+    return contract_service.create_contract(project_id, created_by, content, name)
 
 def create_contract_revision(contract_id: str, new_content: str, user_id: str) -> Dict[str, Any]:
     """Controller for creating contract revision."""
+    from utils.permission_utils import can_revise_contract
+    from repositories.contracts_repo import ContractsRepository as _CR
+    rows = _CR.get_by_id(contract_id)
+    if rows and not can_revise_contract(user_id, rows[0]['project_id']):
+        return {"status": "error", "message": "Insufficient permissions to revise this contract."}
     return contract_service.create_contract_revision(contract_id, new_content, user_id)
 
 def generate_contract_diff(old_content: str, new_content: str) -> str:
@@ -18,10 +23,26 @@ def generate_contract_diff(old_content: str, new_content: str) -> str:
 
 def approve_contract_revision(contract_version_id: str, user_id: str) -> Dict[str, Any]:
     """Controller for approving contract revision."""
+    from utils.permission_utils import can_approve_revision
+    from repositories.contract_versions_repo import ContractVersionsRepository as _CVR
+    from repositories.contracts_repo import ContractsRepository as _CR
+    version = _CVR.get_by_id(contract_version_id)
+    if version:
+        rows = _CR.get_by_id(version.contract_id)
+        if rows and not can_approve_revision(user_id, rows[0]['project_id']):
+            return {"status": "error", "message": "Insufficient permissions to approve this revision."}
     return contract_service.approve_contract_revision(contract_version_id, user_id)
 
 def reject_contract_revision(contract_version_id: str, user_id: str) -> Dict[str, Any]:
     """Controller for rejecting a contract revision."""
+    from utils.permission_utils import can_approve_revision
+    from repositories.contract_versions_repo import ContractVersionsRepository as _CVR
+    from repositories.contracts_repo import ContractsRepository as _CR
+    version = _CVR.get_by_id(contract_version_id)
+    if version:
+        rows = _CR.get_by_id(version.contract_id)
+        if rows and not can_approve_revision(user_id, rows[0]['project_id']):
+            return {"status": "error", "message": "Insufficient permissions to reject this revision."}
     return contract_service.reject_contract_revision(contract_version_id, user_id)
 
 def check_revision_unanimous_approval(contract_version_id: str, required_user_ids: Set[str]) -> bool:

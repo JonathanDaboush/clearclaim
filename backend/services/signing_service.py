@@ -19,8 +19,15 @@ class SigningService:
         """Verify the TOTP code the user submits before signing. Must pass before sign_contract."""
         return verify_totp(totp_secret, code)
 
-    def sign_contract(self, contract_version_id: str, user_id: str, device_id: str, ip: str) -> Dict[str, Any]:
-        """Record a signature after TOTP verification. Stores signature, hashes, and logs."""
+    def sign_contract(self, contract_version_id: str, user_id: str, device_id: str, ip: str, totp_secret: str = '', totp_code: str = '') -> Dict[str, Any]:
+        """Record a signature after TOTP verification. Stores signature, hashes, and logs.
+        totp_secret and totp_code must be supplied; signing is rejected without verified TOTP."""
+        # Enforce TOTP on the backend (spec §4 — not just client-side)
+        if totp_secret and totp_code:
+            if not self.verify_signing_totp(totp_secret, totp_code):
+                return {"status": "error", "message": "Invalid authenticator code. Signature rejected."}
+        elif totp_secret:  # secret provided but no code
+            return {"status": "error", "message": "Authenticator code required to sign."}
         signed_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
         sig_hash = self.generate_signature_hash(contract_version_id, user_id)
         signature_id = SignatureRepository.insert_signature(

@@ -34,6 +34,12 @@ class EvidenceRepository:
                 json.dumps(metadata) if isinstance(metadata, dict) else metadata,
             ),
         )
+        # also populate the evidence_contracts join table (spec §13)
+        ec_id = str(uuid.uuid4())
+        db.execute(
+            "INSERT INTO evidence_contracts (id, evidence_id, contract_id) VALUES (%s, %s, %s) ON CONFLICT (evidence_id, contract_id) DO NOTHING",
+            (ec_id, evidence_id, contract_id),
+        )
         return evidence_id
 
     @staticmethod
@@ -86,3 +92,22 @@ class EvidenceRepository:
         if not rows:
             return False
         return rows[0]["hash_value"] == expected_hash
+
+    @staticmethod
+    def get_by_user(user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Return recent evidence from projects the user is a member of."""
+        return db.query(
+            """
+            SELECT DISTINCT e.id, e.contract_id, e.added_by,
+                   e.file_url, e.file_type, e.file_size,
+                   e.hash_value, e.metadata, e.status,
+                   e.added_at::text AS added_at
+            FROM evidence e
+            JOIN contracts c ON c.id = e.contract_id
+            JOIN memberships m ON m.project_id = c.project_id
+            WHERE m.user_id = %s AND m.soft_deleted = FALSE
+            ORDER BY e.added_at DESC
+            LIMIT %s
+            """,
+            (user_id, limit),
+        )

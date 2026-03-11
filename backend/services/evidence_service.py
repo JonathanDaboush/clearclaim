@@ -52,13 +52,25 @@ class EvidenceService:
 
     def approve_evidence(self, evidence_id: str, user_id: str) -> Dict[str, Any]:
         """Record a user's approval of an evidence addition."""
+        import uuid, db as _db
+        _db.execute(
+            "INSERT INTO evidence_approvals (id, evidence_id, user_id, action) VALUES (%s, %s, %s, 'approve') ON CONFLICT DO NOTHING",
+            (str(uuid.uuid4()), evidence_id, user_id),
+        )
         AuditService().log_event("approve_evidence", user_id, {"evidence_id": evidence_id})
         return {"status": "Evidence approved"}
 
     def check_evidence_unanimous_approval(self, evidence_id: str, required_user_ids: Set[str]) -> bool:
         """Return True if all required parties have approved the evidence addition."""
-        # TODO: query evidence approval records per evidence_id
-        return True
+        import db as _db
+        if not required_user_ids:
+            return True
+        rows = _db.query(
+            "SELECT user_id FROM evidence_approvals WHERE evidence_id = %s AND action = 'approve'",
+            (evidence_id,),
+        )
+        approved = {r["user_id"] for r in rows}
+        return required_user_ids.issubset(approved)
 
     def activate_evidence(self, evidence_id: str) -> Dict[str, Any]:
         """Activate evidence after unanimous approval."""
@@ -73,6 +85,11 @@ class EvidenceService:
 
     def approve_evidence_deletion(self, evidence_id: str, user_id: str) -> Dict[str, Any]:
         """Record a user's approval of evidence deletion."""
+        import uuid, db as _db
+        _db.execute(
+            "INSERT INTO evidence_approvals (id, evidence_id, user_id, action) VALUES (%s, %s, %s, 'delete') ON CONFLICT DO NOTHING",
+            (str(uuid.uuid4()), evidence_id, user_id),
+        )
         AuditService().log_event("approve_evidence_deletion", user_id, {"evidence_id": evidence_id})
         return {"status": "Evidence deletion approved"}
 

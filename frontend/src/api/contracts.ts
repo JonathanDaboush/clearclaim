@@ -3,6 +3,7 @@ import { rpcPost, rpcGet } from './client';
 export interface ContractData {
   id: string;
   project_id: string;
+  name: string;
   created_by: string;
   created_at: string;
   current_version: string | null;
@@ -23,10 +24,10 @@ export interface ContractVersionData {
 }
 
 export const contractsApi = {
-  /** POST /contract/create args=[project_id, created_by, content] */
-  create: (project_id: string, created_by: string, content: string) =>
+  /** POST /contract/create args=[project_id, created_by, content, name] */
+  create: (project_id: string, created_by: string, content: string, name: string = 'Untitled Contract') =>
     rpcPost<{ status: string; contract_id: string; version_id: string }>(
-      '/contract/create', [project_id, created_by, content]
+      '/contract/create', [project_id, created_by, content, name]
     ),
 
   /** GET /contract/get ?contract_id=... */
