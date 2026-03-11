@@ -1,0 +1,1091 @@
+1. Core Product Design Philosophy
+
+The system is designed as a record and accountability platform, not a social tool or productivity toy.
+
+Primary priorities in order:
+
+Trust
+
+Clarity
+
+Evidence visibility
+
+Speed of use
+
+Accessibility
+
+Familiarity
+
+Visual simplicity
+
+The interface should evoke the feeling of:
+
+a well-organized archive
+
+a legal case file
+
+a structured timeline of facts
+
+The emotional tone should feel:
+
+calm
+
+factual
+
+neutral
+
+methodical
+
+structured
+
+Avoid visual elements associated with:
+
+finance dashboards
+
+crypto apps
+
+marketing platforms
+
+social media feeds
+
+2. Color Palette
+
+The palette emphasizes truth, order, and neutrality rather than commerce or urgency.
+
+Base Colors
+
+Background
+#F4F6F7
+
+Card Background
+#FFFFFF
+
+Section Background
+#EEF2F4
+
+Borders
+#D9E0E5
+
+Primary Text
+#1F2A33
+
+Secondary Text
+#5C6B75
+
+Metadata Text
+#7B8A94
+
+These colors produce a calm workspace similar to archival documents.
+
+Primary Accent Color (Authority)
+
+Muted slate blue.
+
+Primary
+#3A5A78
+
+Hover
+#2F4B63
+
+Light accent
+#D8E4ED
+
+Usage:
+
+primary buttons
+
+active tabs
+
+links
+
+important UI focus areas
+
+Secondary Structural Accent
+
+Muted gray-green.
+
+Primary
+#6F8A87
+
+Light
+#E4ECEB
+
+Usage:
+
+section headers
+
+secondary buttons
+
+subtle highlights
+
+Status Colors
+
+Status must never rely only on color; always include text or icons.
+
+Confirmed
+#4F8A6F
+
+Pending
+#C89B3C
+
+Disputed
+#C05656
+
+Informational
+#5B7FA6
+
+3. Typography
+
+Primary fonts:
+
+Inter
+
+Roboto
+
+Source Sans
+
+Text sizing:
+
+Body text
+Minimum 16px
+
+Metadata
+14px
+
+Headings
+20–28px
+
+Contracts must remain readable at all sizes.
+
+Avoid overly decorative fonts.
+
+4. Layout Structure
+
+The application uses a three-layer navigation architecture.
+
+Layer 1 — System Overview
+
+Pages:
+
+Dashboard
+
+Project list
+
+Notifications
+
+Account settings
+
+Purpose:
+
+Help users understand what exists and what requires attention.
+
+Layer 2 — Project Workspace
+
+Within a project users access:
+
+Timeline
+
+Contracts
+
+Evidence
+
+Members
+
+Settings
+
+The timeline is always the default view.
+
+Layer 3 — Detailed Record Views
+
+Deep inspection screens such as:
+
+Evidence viewer
+
+Contract viewer
+
+Signature record
+
+Timeline event detail
+
+These show exact metadata and verification data.
+
+5. Navigation System
+
+Primary navigation uses a left sidebar.
+
+Items:
+
+Dashboard
+Projects
+Evidence
+Notifications
+Account
+
+Inside projects:
+
+Timeline
+Contracts
+Evidence
+Members
+Settings
+
+Breadcrumb Navigation
+
+Users must always know where they are.
+
+Example:
+
+Dashboard
+
+Renovation Project
+Evidence
+Photo #14
+
+Breadcrumbs allow quick navigation backward.
+
+6. Timeline System (Core UI Component)
+
+The timeline is the central spine of the entire application.
+
+Every action appears as a chronological event.
+
+Event types include:
+
+contract creation
+
+contract revision
+
+contract signature
+
+evidence upload
+
+evidence dispute
+
+comment or note
+
+Each event displays:
+
+Action
+User
+Timestamp
+Status
+Associated records
+
+Events expand to show full metadata.
+
+7. Evidence System
+
+Evidence handling must feel similar to a phone gallery but more precise.
+
+Supported evidence types:
+
+images
+
+videos
+
+documents
+
+written notes
+
+Evidence metadata always includes:
+
+Uploader
+Timestamp
+File type
+File size
+File hash
+Linked project
+Linked contract (if applicable)
+
+Evidence cannot be replaced after upload; only new evidence can be added.
+
+8. Evidence Viewer
+
+The viewer opens as a modal or full screen.
+
+Capabilities include:
+
+Zoom in
+Zoom out
+Pan
+Full screen
+Next / previous evidence navigation
+
+Keyboard shortcuts must also work.
+
+Metadata appears below or beside the media.
+
+9. Evidence Zoom and Inspection
+
+Evidence inspection supports:
+
+scroll zoom
+pinch zoom (mobile)
+double-click zoom
+drag pan
+
+Documents support:
+
+page navigation
+zoom scaling
+text selection
+
+This allows users to inspect proof details.
+
+10. Evidence Search and Filtering
+
+Users must be able to locate evidence quickly.
+
+Search parameters:
+
+date
+user
+file type
+contract
+keyword
+project
+
+Filtering options:
+
+photos
+videos
+documents
+notes
+
+Results update dynamically.
+
+11. Evidence Sharing
+
+Evidence can be shared through:
+
+secure link
+email
+export package
+
+Email sharing includes options to attach:
+
+metadata
+timeline context
+contract reference
+
+Recipients view evidence through a read-only viewer.
+
+12. Evidence Packages
+
+Users can select multiple evidence items.
+
+Exported packages contain:
+
+selected files
+timeline excerpts
+metadata records
+
+Useful for dispute resolution or documentation.
+
+13. Contract System
+
+Contracts exist as versioned documents.
+
+Features include:
+
+version history
+revision tracking
+diff comparison
+signature tracking
+
+Users must always see which version they are viewing.
+
+14. Contract Signing Flow
+
+Signing requires explicit user action.
+
+Steps:
+
+Review contract
+Confirm review
+Enter authenticator code
+Record signature
+
+After signing the system displays:
+
+timestamp
+device information
+IP (if recorded)
+document hash
+
+15. Interaction Design Principles
+
+The interface must feel predictable and familiar.
+
+Patterns similar to widely used software should be adopted, such as:
+
+file uploads similar to Google Drive
+
+activity logs similar to GitHub
+
+messaging and event feeds similar to Slack
+
+Familiar patterns reduce learning time.
+
+16. Evidence Capture Speed
+
+Capturing evidence must require very few actions.
+
+Example workflow:
+
+Open project
+Tap “Add Evidence”
+Take photo or upload
+Submit
+
+This should take only a few seconds.
+
+17. Mobile Behavior
+
+Mobile is optimized for:
+
+evidence capture
+contract review
+signing
+
+Features include:
+
+floating “Add Evidence” button
+large tap targets
+swipe navigation in media viewer
+
+18. Accessibility Features
+
+Accessibility options include:
+
+high-contrast mode
+adjustable text size
+reduced motion mode
+screen reader compatibility
+keyboard navigation
+
+These support compliance with accessibility expectations like the Accessible Canada Act and the Americans with Disabilities Act.
+
+19. Visual Accessibility
+
+Support for visually impaired users includes:
+
+image zoom controls
+image descriptions
+high contrast palette
+clear focus indicators
+
+Status indicators must include both color and text.
+
+20. Audio Accessibility
+
+If audio or video evidence exists:
+
+videos support captions
+transcripts can be generated
+notifications are visual as well as auditory
+
+21. Keyboard Navigation
+
+All core functionality must work without a mouse.
+
+Users must be able to:
+
+navigate projects
+open evidence
+review contracts
+sign agreements
+
+using keyboard controls.
+
+22. Micro-Interaction Feedback
+
+The system provides clear confirmations when actions occur.
+
+Examples:
+
+Evidence uploaded successfully
+Signature recorded
+Contract revision saved
+
+Feedback reinforces system reliability.
+
+23. Motion and Animation
+
+Animations are minimal and optional.
+
+Users may enable reduced motion.
+
+Transitions should be subtle and functional.
+
+24. Data Transparency
+
+Users should always see system integrity signals.
+
+Examples:
+
+Identity verified
+Evidence timestamp recorded
+Signature authenticated
+
+These indicators strengthen user trust.
+
+25. Design Consistency Rules
+
+To maintain visual order:
+
+Use one primary color
+Use one structural accent
+Use four status colors
+Use neutral backgrounds
+
+Avoid color overload.
+
+Consistency across pages is critical.
+
+Final Principle
+
+The application must feel like a digital case file builder.
+
+Every action a user performs contributes to a chronological, verifiable record of events.
+
+Users should feel that they are:
+
+documenting facts
+preserving evidence
+recording agreements
+
+not simply filling out forms.
+
+1. Authentication Entry
+
+Purpose: entry point to the system.
+
+Functions:
+
+• Login
+• Sign up
+• Forgot password
+
+Fields:
+
+Email
+Password
+
+Then TOTP prompt appears.
+
+Flow:
+
+Login → TOTP → Dashboard
+
+Backend interaction:
+
+User Account Layer
+• Login(email,password,TOTP)
+• Device verification
+• suspicious activity detection
+
+2. New Device Verification Screen
+
+Appears when a device is unknown.
+
+User sees:
+
+Device info
+Location estimate
+Approve / Deny
+
+Flow:
+
+Approve device → device added to trusted list
+
+Backend:
+
+Multi-Device Management
+
+• Add device
+• Log device event
+• Send notification
+
+3. Identity Verification Screen
+
+Optional but triggered when higher legal assurance is needed.
+
+User uploads ID through verification provider.
+
+Frontend displays:
+
+Verification status
+Pending / verified / rejected
+
+Backend:
+
+Identity Verification Module
+
+• identity_verifications table
+• provider reference stored
+
+Sensitive documents never stored in system.
+
+4. Main Dashboard
+
+Purpose: overview of everything requiring attention.
+
+Sections:
+
+Projects
+Pending signatures
+Recent evidence
+Security alerts
+Billing notices
+
+Example widgets:
+
+Projects needing action
+Recent contract changes
+Device alerts
+
+Backend connected:
+
+Projects
+Contracts
+Audit logs
+Notifications
+Security monitoring
+
+5. Project List Screen
+
+Displays all projects user belongs to.
+
+Information displayed:
+
+Project name
+Role
+Last activity
+Verification level
+
+User actions:
+
+Create project
+Open project
+Leave project
+
+Backend:
+
+Projects table
+Membership table
+Roles table
+
+6. Project Workspace (Core Screen)
+
+This is the central workspace for a project.
+
+Tabs:
+
+Timeline
+Contracts
+Evidence
+Members
+Settings
+
+Backend connections:
+
+Projects
+Memberships
+Roles
+Audit logs
+
+The timeline tab is always default.
+
+7. Timeline Screen
+
+This is the system record view.
+
+Displays events chronologically.
+
+Events include:
+
+Contract created
+Revision made
+Evidence added
+Contract signed
+Device change
+Role change
+
+Each event card shows:
+
+User
+Timestamp
+Action
+Status
+
+Clicking an event opens detail view.
+
+Backend:
+
+Audit Logs
+Contracts
+Evidence
+Signatures
+
+8. Contract List Screen
+
+Shows all contracts inside a project.
+
+Displays:
+
+Contract name
+Current version
+Status
+Last revision
+
+Actions:
+
+Open contract
+Create contract
+
+Backend:
+
+Contracts table
+Contract versions table
+
+9. Contract Viewer Screen
+
+Displays the full contract.
+
+Sections:
+
+Document viewer
+Version history
+Signatures
+
+Features:
+
+Scroll document
+View version history
+View signing status
+
+Backend:
+
+Contract versions
+Signatures
+Audit logs
+
+10. Contract Revision Screen
+
+Used when editing or reviewing contract changes.
+
+Displays:
+
+Original version
+New version
+GitHub-style diff
+
+Color coding:
+
+Green → added
+Red → removed
+
+Actions:
+
+Approve revision
+Reject revision
+
+Backend:
+
+Revision Changes table
+Contract Versions table
+
+11. Signing Screen
+
+When user clicks sign.
+
+Process:
+
+Step 1
+Confirm review
+
+Step 2
+Enter authenticator code
+
+Step 3
+Signature recorded
+
+System displays:
+
+Timestamp
+Device
+IP
+Contract hash
+
+Backend:
+
+Signing module
+Signature storage
+Audit logs
+
+12. Evidence Library Screen
+
+Displays all evidence in the project.
+
+Evidence types:
+
+Photos
+Videos
+Documents
+Notes
+
+Users can:
+
+Upload evidence
+Search evidence
+Filter evidence
+
+Backend:
+
+Evidence table
+Evidence_contracts table
+
+13. Evidence Viewer Screen
+
+Full evidence inspection.
+
+Features:
+
+Zoom
+Pan
+Full resolution
+Metadata display
+
+Metadata:
+
+Uploader
+Timestamp
+Hash
+Linked contract
+
+Actions:
+
+Share evidence
+Export evidence package
+
+Backend:
+
+Evidence table
+Audit logs
+
+14. Evidence Sharing Screen
+
+User selects evidence and sends it.
+
+Options:
+
+Email recipient
+Generate secure link
+Export package
+
+Optional attachments:
+
+Metadata
+Timeline context
+
+Backend:
+
+Notifications
+Audit logs
+
+15. Members & Roles Screen
+
+Shows project participants.
+
+Displays:
+
+User
+Role
+Verification status
+Device status
+
+Admin actions:
+
+Change role
+Invite user
+Remove user
+
+Backend:
+
+Membership table
+Roles table
+
+16. Device Management Screen
+
+Users manage trusted devices.
+
+Displays:
+
+Device name
+Location
+Last activity
+
+Actions:
+
+Revoke device
+Approve new device
+
+Backend:
+
+Devices table
+Security monitoring
+
+17. Security Alerts Screen
+
+Displays suspicious activity.
+
+Examples:
+
+New device login
+Repeated failed signing attempts
+Unusual login location
+
+User can:
+
+Review event
+Approve activity
+Lock account
+
+Backend:
+
+Suspicious Activity Detector
+Alerts Module
+
+18. Notifications Center
+
+All system notifications appear here.
+
+Types:
+
+Contract revision
+Evidence change
+Security alert
+Project invitation
+
+Backend:
+
+Notifications table
+
+19. Billing & Subscription Screen
+
+Shows payment information.
+
+Displays:
+
+Subscription tier
+Billing history
+Next payment date
+
+Metrics displayed in simple charts.
+
+Backend:
+
+Subscriptions table
+Payments table
+
+20. Accessibility Settings Screen
+
+Users configure accessibility.
+
+Options:
+
+Text size
+High contrast mode
+Reduced motion
+Caption preference
+Screen reader mode
+
+Backend:
+
+User preferences stored in user settings.
+
+How the Screens Work Together
+
+Typical user flow:
+
+User logs in
+→ Dashboard
+→ Open project
+→ View timeline
+→ Open contract
+→ Review revision
+→ Sign contract
+→ Upload evidence
+→ Share evidence
+
+Every step updates audit logs automatically.
+
+How the Frontend Acts as a Backend Controller
+
+Each user action triggers backend modules.
+
+Example: signing contract.
+
+Frontend action:
+
+User clicks sign
+
+Backend sequence:
+
+Generate ephemeral signing token
+Verify TOTP
+Hash contract
+Store signature
+Append audit log entry
+Notify other parties
+
+Frontend simply displays confirmation.
+
+Full System Flow
+
+User registration
+→ device verification
+→ identity verification (optional)
+
+Project creation
+→ role assignment
+
+Contract creation
+→ revisions
+→ approvals
+
+Evidence submission
+→ timestamp + hash
+
+Contract signing
+→ TOTP confirmation
+
+Audit logging
+→ append-only cryptographic chain
+
+Security monitoring
+→ suspicious activity alerts
+
+Billing
+→ subscription and payment tracking
+
+Final Frontend Principle
+
+The frontend should feel like a simple document workflow system, even though it controls a complex backend.
+
+Users experience:
+
+clear projects
+clear timelines
+easy signing
+simple evidence uploads
+
+while the backend handles:
+
+cryptography
+tamper prevention
+audit logs
+security monitoring
+
+without exposing that complexity.

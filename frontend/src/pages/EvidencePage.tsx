@@ -439,10 +439,10 @@ export default function EvidencePage() {
             className="form-input max-w-[180px]"
           >
             <option value="">All contracts</option>
-            {(contracts as { id: string; project_id: string }[])
+            {(contracts as { id: string; project_id: string; name?: string }[])
               .filter((c) => !projectFilter || c.project_id === projectFilter)
               .map((c) => (
-                <option key={c.id} value={c.id}>{c.id.slice(0, 12)}…</option>
+                <option key={c.id} value={c.id}>{c.name || c.id.slice(0, 12) + '…'}</option>
               ))}
           </select>
           <div className="flex gap-1">
