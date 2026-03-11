@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contractsApi } from '@/api/contracts';
 import type { ContractVersionData } from '@/api/contracts';
+import { projectsApi } from '@/api/projects';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { VersionHistory } from '@/components/contracts/VersionHistory';
 import { SigningFlow } from '@/components/contracts/SigningFlow';
@@ -33,6 +34,21 @@ export default function ContractDetailPage() {
     queryFn:  () => contractsApi.getVersions(contractId!),
     enabled:  !!contractId,
   });
+
+  const { data: userProjects = [] } = useQuery({
+    queryKey: ['user-projects', session?.user_id],
+    queryFn:  () => projectsApi.getUserProjects(session!.user_id),
+    enabled:  !!session?.user_id,
+  });
+
+  const { data: projectContracts = [] } = useQuery({
+    queryKey: ['project-contracts', projectId],
+    queryFn:  () => projectsApi.getProjectContracts(projectId!),
+    enabled:  !!projectId,
+  });
+
+  const projectName = (userProjects as { id: string; name: string }[]).find((p) => p.id === projectId)?.name ?? 'Project';
+  const contractName = (projectContracts as { id: string; name?: string }[]).find((c) => c.id === contractId)?.name ?? 'Contract';
 
   const activeVersion: ContractVersionData | undefined =
     versions.find((v) => v.id === versions[0]?.id) ?? versions[0];
@@ -83,11 +99,11 @@ export default function ContractDetailPage() {
             <nav className="flex items-center gap-1 text-xs text-meta mb-2">
               <Link to="/projects" className="hover:text-accent">Projects</Link>
               <span className="mx-1">›</span>
-              <Link to={`/projects/${projectId}`} className="hover:text-accent">Project</Link>
+              <Link to={`/projects/${projectId}`} className="hover:text-accent">{projectName}</Link>
               <span className="mx-1">›</span>
-              <span className="text-primary">Contract</span>
+              <span className="text-primary">{contractName}</span>
             </nav>
-            <h1 className="page-title">Contract</h1>
+            <h1 className="page-title">{contractName}</h1>
             {activeVersion && (
               <div className="flex items-center gap-2 mt-1">
                 <p className="page-subtitle">

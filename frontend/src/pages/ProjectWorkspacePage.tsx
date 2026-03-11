@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '@/api/projects';
 import type { ProjectData, MemberData } from '@/api/projects';
@@ -113,15 +113,11 @@ export default function ProjectWorkspacePage() {
       <div className="page-header">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <button
-              className="text-xs text-meta hover:text-accent mb-1 flex items-center gap-1"
-              onClick={() => navigate('/projects')}
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              All Projects
-            </button>
+            <nav className="flex items-center gap-1 text-xs text-meta mb-2">
+              <Link to="/projects" className="hover:text-accent">Projects</Link>
+              <span className="mx-1">›</span>
+              <span className="text-primary">{project?.name ?? '…'}</span>
+            </nav>
             <h1 className="page-title">{project?.name ?? '…'}</h1>
             <p className="page-subtitle">
               {project && `Created ${format(new Date(project.created_at), 'dd MMM yyyy')}`}

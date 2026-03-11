@@ -10,13 +10,15 @@ type FilterType = 'all' | 'image' | 'video' | 'document' | 'note';
 
 // ── Evidence Viewer Modal ──────────────────────────────────────────────────────
 
-function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
+function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext, projectName, contractName }: {
   ev: EvidenceData;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
   hasPrev: boolean;
   hasNext: boolean;
+  projectName?: string;
+  contractName?: string;
 }) {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -30,6 +32,7 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
 
   const isImage = (ev.file_type ?? '').startsWith('image/');
   const isVideo = (ev.file_type ?? '').startsWith('video/');
+  const isPdf   = (ev.file_type ?? '') === 'application/pdf' || ev.file_url.toLowerCase().endsWith('.pdf');
 
   const zoomIn  = () => setZoom((z) => Math.min(z + 0.25, 4));
   const zoomOut = () => { setZoom((z) => Math.max(z - 0.25, 0.5)); setOffset({ x: 0, y: 0 }); };
@@ -222,7 +225,14 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
             <track kind="captions" />
           </video>
         )}
-        {!isImage && !isVideo && (
+        {!isImage && !isVideo && isPdf && (
+          <iframe
+            src={ev.file_url}
+            title="PDF viewer"
+            className="w-full h-full border-0"
+          />
+        )}
+        {!isImage && !isVideo && !isPdf && (
           <div className="text-white/60 text-sm text-center">
             <svg className="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -263,7 +273,10 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
         <span><span className="text-white/40">Timestamp:</span> {ev.created_at ? format(new Date(ev.created_at), 'dd MMM yyyy, HH:mm') : '—'}</span>
         {ev.file_hash && <span><span className="text-white/40">Hash:</span> <span className="font-mono">{ev.file_hash.slice(0, 24)}…</span></span>}
         {ev.file_size && <span><span className="text-white/40">Size:</span> {(ev.file_size / 1024).toFixed(1)} KB</span>}
-        <span><span className="text-white/40">Contract:</span> <span className="font-mono">{ev.contract_id.slice(0, 16)}…</span></span>
+        {projectName && <span><span className="text-white/40">Project:</span> {projectName}</span>}
+        {contractName
+          ? <span><span className="text-white/40">Contract:</span> {contractName}</span>
+          : <span><span className="text-white/40">Contract:</span> <span className="font-mono">{ev.contract_id.slice(0, 16)}…</span></span>}
         <span className="text-white/40 ml-auto">← → navigate · swipe · pinch/scroll/+− zoom · 0 reset · Esc close</span>
       </div>
     </div>
@@ -545,6 +558,18 @@ export default function EvidencePage() {
           onNext={() => setViewerIdx((i) => (i !== null && i < filtered.length - 1 ? i + 1 : i))}
           hasPrev={viewerIdx > 0}
           hasNext={viewerIdx < filtered.length - 1}
+          projectName={
+            (projects as { id: string; name: string }[]).find(
+              (p) => p.id === (contracts as { id: string; project_id: string }[]).find(
+                (c) => c.id === filtered[viewerIdx].contract_id
+              )?.project_id
+            )?.name
+          }
+          contractName={
+            (contracts as { id: string; name?: string }[]).find(
+              (c) => c.id === filtered[viewerIdx].contract_id
+            )?.name
+          }
         />
       )}
     </div>
