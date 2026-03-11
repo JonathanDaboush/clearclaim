@@ -249,6 +249,12 @@ export default function ProjectWorkspacePage() {
                           {m.user_id}{isMe && <span className="ml-1 text-xs text-accent">(you)</span>}
                         </p>
                         <p className="text-xs text-secondary">{roleLabel}</p>
+                        {m.verification_status && (
+                          <StatusBadge status={m.verification_status} />
+                        )}
+                        <p className="text-xs text-meta mt-0.5">
+                          {m.active_device_count ?? 0} trusted device{(m.active_device_count ?? 0) !== 1 ? 's' : ''}
+                        </p>
                       </div>
                       {!isMe && (
                         <div className="flex items-center gap-2 shrink-0">

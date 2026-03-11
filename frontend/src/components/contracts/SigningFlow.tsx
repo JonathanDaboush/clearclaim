@@ -44,6 +44,7 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
   const [totpCode,        setTotpCode]       = useState('');
   const [signatureId,     setSignatureId]    = useState('');
   const [signedAt,        setSignedAt]       = useState('');
+  const [docHash,         setDocHash]        = useState('');
   const [error,           setError]          = useState('');
 
   const completedSteps = (): string[] => {
@@ -77,6 +78,13 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
     onSuccess: (res) => {
       setSignatureId(res.signature_id);
       setSignedAt(new Date().toISOString());
+      // hash the contract content client-side for the receipt display
+      const encoder = new TextEncoder();
+      const data = encoder.encode(version.content ?? version.id);
+      crypto.subtle.digest('SHA-256', data).then((buf) => {
+        const hex = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        setDocHash(hex);
+      });
       setStep('receipt');
       onComplete?.();
       setError('');
@@ -234,10 +242,13 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
               title="Signing Receipt"
               variant="success"
               fields={[
-                { label: 'Signature ID',  value: signatureId, mono: true },
-                { label: 'Signed by',     value: session?.email ?? session?.user_id ?? '' },
-                { label: 'Timestamp',     value: format(new Date(signedAt || Date.now()), 'dd MMM yyyy, HH:mm:ss z') },
-                { label: 'Version',       value: `v${version.version_number}` },
+                { label: 'Signature ID',   value: signatureId, mono: true },
+                { label: 'Signed by',      value: session?.email ?? session?.user_id ?? '' },
+                { label: 'Timestamp',      value: format(new Date(signedAt || Date.now()), 'dd MMM yyyy, HH:mm:ss z') },
+                { label: 'Device',         value: session?.device_id ? session.device_id.slice(0, 20) + '…' : 'current device', mono: true },
+                { label: 'IP',             value: 'recorded server-side' },
+                { label: 'Document hash',  value: docHash ? docHash.slice(0, 32) + '…' : 'computing…', mono: true },
+                { label: 'Version',        value: `v${version.version_number}` },
               ]}
             />
 

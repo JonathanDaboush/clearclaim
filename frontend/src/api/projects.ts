@@ -5,6 +5,9 @@ export interface ProjectData {
   name: string;
   main_party_id: string;
   created_at: string;
+  role_id?: string;
+  verification_status?: string;
+  last_activity?: string | null;
 }
 
 export interface MemberData {
@@ -12,6 +15,8 @@ export interface MemberData {
   user_id: string;
   project_id: string;
   role_id: string;
+  verification_status?: string;
+  active_device_count?: number;
 }
 
 export const projectsApi = {

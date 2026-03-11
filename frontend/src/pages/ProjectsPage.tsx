@@ -1,12 +1,21 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi, type ProjectData } from '@/api/projects';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/common/Button';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
+
+const ROLE_LABELS: Record<string, string> = {
+  worker_manager: 'Worker Manager',
+  worker:         'Worker',
+  legal_rep:      'Legal Rep',
+  client:         'Client',
+  guest:          'Guest',
+};
 
 export default function ProjectsPage() {
   const qc = useQueryClient();
@@ -29,6 +38,15 @@ export default function ProjectsPage() {
       setName('');
     },
     onError: () => toast.error('Failed to create project.'),
+  });
+
+  const leaveMutation = useMutation({
+    mutationFn: (projectId: string) => projectsApi.leave(session!.user_id, projectId),
+    onSuccess: () => {
+      toast.success('You have left the project.');
+      qc.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: () => toast.error('Failed to leave project.'),
   });
 
   return (
@@ -55,20 +73,46 @@ export default function ProjectsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((p) => (
-            <Link
-              key={p.id}
-              to={`/projects/${p.id}`}
-              className="card hover:shadow-card-md transition-shadow group block"
-            >
-              <div className="card-body">
+            <div key={p.id} className="card hover:shadow-card-md transition-shadow group">
+              <Link to={`/projects/${p.id}`} className="block card-body pb-2">
                 <p className="text-base font-semibold text-primary group-hover:text-accent">
                   {p.name}
                 </p>
-                <p className="text-xs text-meta mt-3">
-                  Created {format(new Date(p.created_at), 'dd MMM yyyy')}
-                </p>
+                <div className="mt-3 space-y-1.5 text-xs">
+                  {p.role_id && (
+                    <p className="flex items-center gap-1.5 text-secondary">
+                      <span className="text-meta">Role:</span>
+                      <span className="font-medium text-primary">
+                        {ROLE_LABELS[p.role_id] ?? p.role_id}
+                      </span>
+                    </p>
+                  )}
+                  {p.verification_status && (
+                    <p className="flex items-center gap-1.5 text-secondary">
+                      <span className="text-meta">Verification:</span>
+                      <StatusBadge status={p.verification_status} />
+                    </p>
+                  )}
+                  <p className="text-meta">
+                    {p.last_activity
+                      ? 'Active ' + formatDistanceToNow(new Date(p.last_activity), { addSuffix: true })
+                      : 'Created ' + format(new Date(p.created_at), 'dd MMM yyyy')}
+                  </p>
+                </div>
+              </Link>
+              <div className="px-4 pb-3 flex justify-end">
+                <button
+                  className="text-xs text-disputed hover:underline"
+                  onClick={() => {
+                    if (window.confirm('Leave "' + p.name + '"? Your historical participation will be preserved.')) {
+                      leaveMutation.mutate(p.id);
+                    }
+                  }}
+                >
+                  Leave project
+                </button>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
@@ -82,7 +126,7 @@ export default function ProjectsPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="form-input"
-              placeholder="e.g. Construction Agreement â€” 2026"
+              placeholder="e.g. Construction Agreement â€“ 2026"
               onKeyDown={(e) => e.key === 'Enter' && name.trim() && createMutation.mutate()}
             />
           </div>

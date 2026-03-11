@@ -32,12 +32,19 @@ class ProjectRepository:
 
     @staticmethod
     def get_by_user(user_id: str) -> List[Dict[str, Any]]:
-        """Return all active projects the user is a member of."""
+        """Return all active projects the user is a member of, including their role and verification status."""
         return db.query(
             """
-            SELECT p.id, p.name, p.main_party_id, p.created_at::text AS created_at
+            SELECT p.id, p.name, p.main_party_id, p.created_at::text AS created_at,
+                   m.role_id,
+                   u.verification_status,
+                   (SELECT MAX(al.timestamp)::text
+                    FROM audit_logs al
+                    WHERE al.details::text LIKE '%%' || p.id || '%%'
+                   ) AS last_activity
             FROM projects p
             JOIN memberships m ON m.project_id = p.id
+            JOIN users u ON u.id = m.user_id
             WHERE m.user_id = %s AND m.soft_deleted = FALSE AND p.deleted_at IS NULL
             """,
             (user_id,),

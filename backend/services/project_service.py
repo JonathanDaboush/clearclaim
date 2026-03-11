@@ -56,8 +56,21 @@ class ProjectService:
         return {"status": "Role changed"}
 
     def get_project_members(self, project_id: str) -> List[Dict[str, Any]]:
-        """Return all membership records for a project."""
-        return [m.__dict__ for m in MembershipRepository.get_by_project(project_id)]
+        """Return membership records enriched with verification status and device count."""
+        from db import db
+        return db.query(
+            """
+            SELECT m.id, m.user_id, m.project_id, m.role_id,
+                   u.verification_status,
+                   (SELECT COUNT(*) FROM devices d
+                    WHERE d.user_id = m.user_id AND d.revoked_at IS NULL
+                   ) AS active_device_count
+            FROM memberships m
+            JOIN users u ON u.id = m.user_id
+            WHERE m.project_id = %s AND m.soft_deleted = FALSE
+            """,
+            (project_id,),
+        )
 
     def get_user_project_role(self, user_id: str, project_id: str) -> Optional[str]:
         """Return the role of a user within a specific project."""
