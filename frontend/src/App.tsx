@@ -19,6 +19,7 @@ import BillingPage                from '@/pages/BillingPage';
 import ForgotPasswordPage         from '@/pages/ForgotPasswordPage';
 import EvidencePage               from '@/pages/EvidencePage';
 import NewDeviceVerificationPage  from '@/pages/NewDeviceVerificationPage';
+import SecurityAlertsPage         from '@/pages/SecurityAlertsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,8 +54,9 @@ export default function App() {
                 <Route path="/devices"                                         element={<DevicesPage />} />
                 <Route path="/account"                                         element={<AccountPage />} />
                 <Route path="/billing"                                         element={<BillingPage />} />
-                <Route path="/privacy"   element={<PrivacyPage />} />
-                <Route path="/evidence" element={<EvidencePage />} />
+                <Route path="/privacy"          element={<PrivacyPage />} />
+                <Route path="/evidence"         element={<EvidencePage />} />
+                <Route path="/security-alerts"  element={<SecurityAlertsPage />} />
               </Route>
             </Route>
 

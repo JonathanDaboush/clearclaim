@@ -31,6 +31,14 @@ const EVENT_COLORS: Record<string, string> = {
 const dotColor = (event: string) =>
   EVENT_COLORS[event] ?? 'bg-meta';
 
+const INTEGRITY_SIGNALS: Record<string, { label: string; color: string }> = {
+  contract_signed:   { label: 'Signature authenticated',      color: 'bg-confirmed/15 text-confirmed border border-confirmed/30' },
+  evidence_approved: { label: 'Evidence timestamp recorded',  color: 'bg-confirmed/15 text-confirmed border border-confirmed/30' },
+  device_added:      { label: 'Identity verified',            color: 'bg-info/15 text-info border border-info/30' },
+  user_login:        { label: 'Identity verified',            color: 'bg-info/15 text-info border border-info/30' },
+  revision_approved: { label: 'Revision integrity confirmed', color: 'bg-accent/15 text-accent border border-accent/30' },
+};
+
 /**
  * AuditTrail
  * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -123,10 +131,18 @@ export function AuditTrail({ contractId, projectId }: Props) {
                 </div>
 
                 {/* Event */}
-                <div className="col-span-12 sm:col-span-3">
+                <div className="col-span-12 sm:col-span-3 space-y-1">
                   <span className="text-xs font-medium text-primary">
                     {entry.event_type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                   </span>
+                  {INTEGRITY_SIGNALS[entry.event_type] && (
+                    <span className={clsx('inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full', INTEGRITY_SIGNALS[entry.event_type].color)}>
+                      <svg className="w-2.5 h-2.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 1a9 9 0 100 18A9 9 0 0010 1zm3.707 7.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      {INTEGRITY_SIGNALS[entry.event_type].label}
+                    </span>
+                  )}
                 </div>
 
                 {/* User */}

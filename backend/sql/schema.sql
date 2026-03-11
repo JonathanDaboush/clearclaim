@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS devices (
     id          TEXT PRIMARY KEY,
     user_id     TEXT NOT NULL,
     device_info TEXT NOT NULL DEFAULT '',
+    location    TEXT NOT NULL DEFAULT '',
     trusted     BOOLEAN NOT NULL DEFAULT FALSE,
     added_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     revoked     BOOLEAN NOT NULL DEFAULT FALSE,
@@ -62,7 +63,8 @@ CREATE TABLE IF NOT EXISTS contracts (
     project_id      TEXT NOT NULL,
     created_by      TEXT NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    current_version TEXT
+    current_version TEXT,
+    status          TEXT NOT NULL DEFAULT 'draft'
 );
 
 CREATE TABLE IF NOT EXISTS contract_versions (
@@ -73,6 +75,7 @@ CREATE TABLE IF NOT EXISTS contract_versions (
     version_number INTEGER NOT NULL DEFAULT 1,
     content_hash   TEXT NOT NULL DEFAULT '',
     signed         BOOLEAN NOT NULL DEFAULT FALSE,
+    rejected       BOOLEAN NOT NULL DEFAULT FALSE,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

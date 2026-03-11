@@ -25,13 +25,32 @@ class ContractsRepository:
     @staticmethod
     def get_by_id(contract_id: str) -> List[Dict[str, Any]]:
         return db.query(
-            "SELECT id, project_id, created_by, created_at::text AS created_at, current_version FROM contracts WHERE id = %s",
+            """
+            SELECT c.id, c.project_id, c.created_by,
+                   c.created_at::text AS created_at,
+                   c.current_version, c.status,
+                   MAX(cv.created_at)::text AS last_revised_at
+            FROM contracts c
+            LEFT JOIN contract_versions cv ON cv.contract_id = c.id
+            WHERE c.id = %s
+            GROUP BY c.id, c.project_id, c.created_by, c.created_at, c.current_version, c.status
+            """,
             (contract_id,),
         )
 
     @staticmethod
     def get_by_project(project_id: str) -> List[Dict[str, Any]]:
         return db.query(
-            "SELECT id, project_id, created_by, created_at::text AS created_at, current_version FROM contracts WHERE project_id = %s ORDER BY created_at",
+            """
+            SELECT c.id, c.project_id, c.created_by,
+                   c.created_at::text AS created_at,
+                   c.current_version, c.status,
+                   MAX(cv.created_at)::text AS last_revised_at
+            FROM contracts c
+            LEFT JOIN contract_versions cv ON cv.contract_id = c.id
+            WHERE c.project_id = %s
+            GROUP BY c.id, c.project_id, c.created_by, c.created_at, c.current_version, c.status
+            ORDER BY c.created_at
+            """,
             (project_id,),
         )

@@ -160,6 +160,7 @@ export default function ContractDetailPage() {
                 contractId={contractId}
                 currentUserId={session?.user_id ?? ''}
                 canApprove
+                canReject
               />
             )}
             {tab === 'signatures' && activeVersion && (

@@ -6,11 +6,11 @@ import db
 class DevicesRepository:
 
     @staticmethod
-    def add_device(user_id: str, device_info: str) -> str:
+    def add_device(user_id: str, device_info: str, location: str = '') -> str:
         device_id = str(uuid.uuid4())
         db.execute(
-            "INSERT INTO devices (id, user_id, device_info) VALUES (%s, %s, %s)",
-            (device_id, user_id, device_info),
+            "INSERT INTO devices (id, user_id, device_info, location) VALUES (%s, %s, %s, %s)",
+            (device_id, user_id, device_info, location),
         )
         return device_id
 
@@ -33,7 +33,16 @@ class DevicesRepository:
     @staticmethod
     def get_by_user(user_id: str) -> List[Dict[str, Any]]:
         return db.query(
-            "SELECT id, user_id, device_info, trusted, added_at::text AS added_at, revoked FROM devices WHERE user_id = %s ORDER BY added_at",
+            """
+            SELECT d.id, d.user_id, d.device_info, d.location, d.trusted,
+                   d.added_at::text AS added_at, d.revoked,
+                   MAX(al.timestamp)::text AS last_activity
+            FROM devices d
+            LEFT JOIN audit_logs al ON al.device_id = d.id AND al.device_id != ''
+            WHERE d.user_id = %s
+            GROUP BY d.id, d.user_id, d.device_info, d.location, d.trusted, d.added_at, d.revoked
+            ORDER BY d.added_at
+            """,
             (user_id,),
         )
 

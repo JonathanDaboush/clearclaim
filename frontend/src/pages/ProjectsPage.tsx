@@ -74,7 +74,7 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((p) => (
             <div key={p.id} className="card hover:shadow-card-md transition-shadow group">
-              <Link to={`/projects/${p.id}`} className="block card-body pb-2">
+              <Link to={`/projects/${p.id}`} className="block card-body pb-2" aria-label={`Open project ${p.name}`}>
                 <p className="text-base font-semibold text-primary group-hover:text-accent">
                   {p.name}
                 </p>

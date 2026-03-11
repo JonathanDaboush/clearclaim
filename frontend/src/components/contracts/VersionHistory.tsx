@@ -14,6 +14,7 @@ interface Props {
   /** Current logged-in user id */
   currentUserId: string;
   canApprove: boolean;
+  canReject?: boolean;
 }
 
 /**
@@ -28,7 +29,7 @@ interface Props {
  * This component directly supports legal defensibility by making all changes
  * visible and attributable (date, who created each version, hash).
  */
-export function VersionHistory({ contractId, currentUserId, canApprove }: Props) {
+export function VersionHistory({ contractId, currentUserId, canApprove, canReject }: Props) {
   const qc = useQueryClient();
   const [selectedA, setSelectedA] = useState<ContractVersionData | null>(null);
   const [selectedB, setSelectedB] = useState<ContractVersionData | null>(null);
@@ -46,6 +47,15 @@ export function VersionHistory({ contractId, currentUserId, canApprove }: Props)
       qc.invalidateQueries({ queryKey: ['contract-versions', contractId] });
     },
     onError: () => toast.error('Approval failed. Please try again.'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (version_id: string) => contractsApi.rejectRevision(version_id, currentUserId),
+    onSuccess: () => {
+      toast.success('Revision rejected.');
+      qc.invalidateQueries({ queryKey: ['contract-versions', contractId] });
+    },
+    onError: () => toast.error('Rejection failed. Please try again.'),
   });
 
   const handleShowDiff = () => {
@@ -129,7 +139,7 @@ export function VersionHistory({ contractId, currentUserId, canApprove }: Props)
                 </div>
 
                 {/* Approval action */}
-                {canApprove && !v.signed && (
+                {canApprove && !v.signed && !v.rejected && (
                   <Button
                     size="sm"
                     variant="primary"
@@ -138,6 +148,23 @@ export function VersionHistory({ contractId, currentUserId, canApprove }: Props)
                   >
                     Approve Revision
                   </Button>
+                )}
+                {canReject && !v.signed && !v.rejected && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    loading={rejectMutation.isPending}
+                    onClick={() => {
+                      if (confirm('Reject this revision? This will prevent it from being activated.')) {
+                        rejectMutation.mutate(v.id);
+                      }
+                    }}
+                  >
+                    Reject Revision
+                  </Button>
+                )}
+                {v.rejected && (
+                  <span className="text-xs px-2 py-1 rounded bg-red-50 text-disputed font-medium">Rejected</span>
                 )}
               </div>
             );

@@ -25,9 +25,9 @@ def complete_password_reset(token: str, new_password: str) -> Dict[str, Any]:
     """Controller for completing password reset."""
     return auth_service.complete_password_reset(token, new_password)
 
-def register_device(user_id: str, device_info: str) -> Dict[str, Any]:
+def register_device(user_id: str, device_info: str, location: str = '') -> Dict[str, Any]:
     """Controller for registering device."""
-    return auth_service.register_device(user_id, device_info)
+    return auth_service.register_device(user_id, device_info, location)
 
 def verify_new_device(user_id: str, device_id: str) -> Dict[str, Any]:
     """Controller for verifying new device."""

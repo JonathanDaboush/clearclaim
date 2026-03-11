@@ -86,6 +86,7 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/contract/revise': contract_ctrl.create_contract_revision,
     '/contract/generate_diff': contract_ctrl.generate_contract_diff,
     '/contract/approve_revision': contract_ctrl.approve_contract_revision,
+    '/contract/reject_revision':  contract_ctrl.reject_contract_revision,
     '/contract/check_unanimous_approval': contract_ctrl.check_revision_unanimous_approval,
     '/contract/activate_version': contract_ctrl.activate_contract_version,
     '/contract/get_state': contract_ctrl.get_contract_state,
@@ -216,6 +217,16 @@ class RequestHandler(BaseHTTPRequestHandler):
             data = {}
         req_args: List[Any] = data.get('args', [])
         req_kwargs: Dict[str, Any] = data.get('kwargs', {})
+        # Inject the real client IP for the signing route (3rd positional arg is device_id, 4th is ip)
+        if path == '/signing/sign':
+            client_ip = self.client_address[0]
+            if len(req_args) >= 4:
+                req_args[3] = client_ip
+            else:
+                while len(req_args) < 3:
+                    req_args.append('')
+                if len(req_args) == 3:
+                    req_args.append(client_ip)
         result = route(path, *req_args, **req_kwargs)
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')

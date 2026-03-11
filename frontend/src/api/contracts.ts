@@ -6,6 +6,8 @@ export interface ContractData {
   created_by: string;
   created_at: string;
   current_version: string | null;
+  status?: string;
+  last_revised_at?: string;
 }
 
 export interface ContractVersionData {
@@ -17,6 +19,7 @@ export interface ContractVersionData {
   version_number?: number;
   content_hash?: string;
   signed?: boolean;
+  rejected?: boolean;
 }
 
 export const contractsApi = {
@@ -47,6 +50,10 @@ export const contractsApi = {
   /** POST /contract/approve_revision args=[contract_version_id, user_id] */
   approveRevision: (contract_version_id: string, user_id: string) =>
     rpcPost('/contract/approve_revision', [contract_version_id, user_id]),
+
+  /** POST /contract/reject_revision args=[contract_version_id, user_id] */
+  rejectRevision: (contract_version_id: string, user_id: string) =>
+    rpcPost('/contract/reject_revision', [contract_version_id, user_id]),
 
   /** POST /contract/activate_version args=[contract_id, contract_version_id] */
   activateVersion: (contract_id: string, contract_version_id: string) =>

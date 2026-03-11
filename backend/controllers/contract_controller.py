@@ -20,6 +20,10 @@ def approve_contract_revision(contract_version_id: str, user_id: str) -> Dict[st
     """Controller for approving contract revision."""
     return contract_service.approve_contract_revision(contract_version_id, user_id)
 
+def reject_contract_revision(contract_version_id: str, user_id: str) -> Dict[str, Any]:
+    """Controller for rejecting a contract revision."""
+    return contract_service.reject_contract_revision(contract_version_id, user_id)
+
 def check_revision_unanimous_approval(contract_version_id: str, required_user_ids: Set[str]) -> bool:
     """Controller for checking revision unanimous approval."""
     return contract_service.check_revision_unanimous_approval(contract_version_id, required_user_ids)

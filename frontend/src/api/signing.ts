@@ -29,7 +29,7 @@ export const signingApi = {
    * Cryptographically sign the contract version.
    */
   sign: (contract_version_id: string, user_id: string, device_id: string, ip: string) =>
-    rpcPost<{ status: string; signature_id: string }>('/signing/sign', [contract_version_id, user_id, device_id, ip]),
+    rpcPost<{ status: string; signature_id: string; ip?: string }>('/signing/sign', [contract_version_id, user_id, device_id, ip]),
 
   /** GET /signing/get_signatures ?contract_version_id=... */
   getSignatures: (contract_version_id: string) =>

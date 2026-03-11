@@ -239,6 +239,19 @@ export function EvidencePanel({ contractId, canAdd, canRequestDeletion, canAppro
           </div>
         </div>
       </Modal>
+
+      {/* Floating "Add Evidence" button — mobile only */}
+      {canAdd && (
+        <button
+          className="fixed bottom-6 right-6 z-40 md:hidden w-14 h-14 rounded-full bg-accent text-white shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+          aria-label="Submit Evidence"
+          onClick={() => setUploadOpen(true)}
+        >
+          <svg aria-hidden="true" className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      )}
     </>
   );
 }

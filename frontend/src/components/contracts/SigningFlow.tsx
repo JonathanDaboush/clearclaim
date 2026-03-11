@@ -45,6 +45,7 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
   const [signatureId,     setSignatureId]    = useState('');
   const [signedAt,        setSignedAt]       = useState('');
   const [docHash,         setDocHash]        = useState('');
+  const [signingIp,       setSigningIp]      = useState('');
   const [error,           setError]          = useState('');
 
   const completedSteps = (): string[] => {
@@ -78,6 +79,7 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
     onSuccess: (res) => {
       setSignatureId(res.signature_id);
       setSignedAt(new Date().toISOString());
+      if (res.ip) setSigningIp(res.ip);
       // hash the contract content client-side for the receipt display
       const encoder = new TextEncoder();
       const data = encoder.encode(version.content ?? version.id);
@@ -246,7 +248,7 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
                 { label: 'Signed by',      value: session?.email ?? session?.user_id ?? '' },
                 { label: 'Timestamp',      value: format(new Date(signedAt || Date.now()), 'dd MMM yyyy, HH:mm:ss z') },
                 { label: 'Device',         value: session?.device_id ? session.device_id.slice(0, 20) + '…' : 'current device', mono: true },
-                { label: 'IP',             value: 'recorded server-side' },
+                { label: 'IP',             value: signingIp || 'recorded server-side' },
                 { label: 'Document hash',  value: docHash ? docHash.slice(0, 32) + '…' : 'computing…', mono: true },
                 { label: 'Version',        value: `v${version.version_number}` },
               ]}

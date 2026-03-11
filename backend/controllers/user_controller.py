@@ -25,9 +25,9 @@ def complete_password_reset(token: str, new_password: str) -> Dict[str, Any]:
     """Complete a password reset using the provided token."""
     return auth_service.complete_password_reset(token, new_password)
 
-def add_device(user_id: str, device_info: str) -> Dict[str, Any]:
+def add_device(user_id: str, device_info: str, location: str = '') -> Dict[str, Any]:
     """Register a new device (untrusted until authenticator + email verified)."""
-    return auth_service.register_device(user_id, device_info)
+    return auth_service.register_device(user_id, device_info, location)
 
 def verify_new_device(user_id: str, device_id: str) -> Dict[str, Any]:
     """Mark a newly registered device as trusted after challenge is passed."""

@@ -79,6 +79,59 @@ export default function BillingPage() {
           <p>Each charge is itemised below with a full description of what it covers.</p>
         </div>
 
+        {/* Payment chart */}
+        {(payments as PaymentData[]).length > 0 && (() => {
+          const recent = [...(payments as PaymentData[])].slice(-8);
+          const maxAmt = Math.max(...recent.map((p) => Number(p.amount)), 1);
+          const BAR_H = 80;
+          const BAR_W = 28;
+          const GAP   = 10;
+          const totalW = recent.length * (BAR_W + GAP) - GAP;
+          return (
+            <div className="card">
+              <div className="card-header">
+                <h2 className="text-sm font-semibold text-primary">Payment Activity</h2>
+                <p className="text-xs text-secondary mt-0.5">Last {recent.length} transactions</p>
+              </div>
+              <div className="card-body">
+                <svg
+                  role="img"
+                  aria-label="Bar chart of recent payment amounts"
+                  viewBox={`0 0 ${totalW} ${BAR_H + 24}`}
+                  className="w-full max-w-sm"
+                  style={{ height: BAR_H + 24 }}
+                >
+                  {recent.map((p, i) => {
+                    const amt  = Number(p.amount);
+                    const barH = Math.max(4, Math.round((amt / maxAmt) * BAR_H));
+                    const x    = i * (BAR_W + GAP);
+                    const y    = BAR_H - barH;
+                    return (
+                      <g key={p.id}>
+                        <rect
+                          x={x} y={y} width={BAR_W} height={barH}
+                          rx={3}
+                          fill={p.status === 'completed' ? '#4F8A6F' : '#C89B3C'}
+                          aria-label={`$${amt.toFixed(2)}`}
+                        />
+                        <text
+                          x={x + BAR_W / 2} y={BAR_H + 16}
+                          textAnchor="middle"
+                          fontSize={9}
+                          fill="#7B8A94"
+                        >
+                          ${amt.toFixed(0)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+                <p className="text-xs text-meta mt-2">Green = completed · Yellow = pending</p>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Payment history */}
         <div className="card">
           <div className="card-header">

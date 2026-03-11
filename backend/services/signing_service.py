@@ -34,7 +34,7 @@ class SigningService:
             "signature_hash": sig_hash,
         })
         NotificationService().create_notification(user_id, "signed", f"You signed contract version {contract_version_id}.")
-        return {"status": "Contract signed", "signature_id": signature_id}
+        return {"status": "Contract signed", "signature_id": signature_id, "ip": ip}
 
     def generate_signature_hash(self, contract_version_id: str, user_id: str) -> str:
         """Return SHA-256 hash tying user ID to contract version for tamper evidence."""

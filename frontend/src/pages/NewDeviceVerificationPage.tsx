@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '@/api/auth';
@@ -10,6 +10,7 @@ export default function NewDeviceVerificationPage() {
   const navigate       = useNavigate();
   const { session }    = useAuthStore();
   const [done, setDone] = useState(false);
+  const [locationEstimate, setLocationEstimate] = useState<string>('');
 
   // Device fingerprint for current browser/OS
   const deviceInfo = {
@@ -19,10 +20,27 @@ export default function NewDeviceVerificationPage() {
     timestamp: new Date().toISOString(),
   };
 
+  // Collect best available location estimate on mount
+  useEffect(() => {
+    // Use timezone as a proxy — no external API needed
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? '';
+    setLocationEstimate(tz);
+    // Try to refine with geolocation if user permits
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocationEstimate(`${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)} (${tz})`);
+        },
+        () => { /* permission denied — keep timezone estimate */ },
+        { timeout: 5000 },
+      );
+    }
+  }, []);
+
   const approveMutation = useMutation({
     mutationFn: async () => {
       if (!session?.user_id) throw new Error('Not authenticated');
-      const result = await authApi.addDevice(session.user_id, JSON.stringify(deviceInfo));
+      const result = await authApi.addDevice(session.user_id, JSON.stringify(deviceInfo), locationEstimate);
       if (result.device_id) {
         await authApi.verifyNewDevice(session.user_id, result.device_id);
       }
@@ -81,6 +99,10 @@ export default function NewDeviceVerificationPage() {
             <div className="bg-section rounded-lg p-3 space-y-1.5 text-xs text-secondary">
               <p><span className="text-meta">Platform:</span> {deviceInfo.platform || 'Unknown'}</p>
               <p><span className="text-meta">Language:</span> {deviceInfo.language}</p>
+              <p>
+                <span className="text-meta">Location estimate:</span>{' '}
+                {locationEstimate || 'Detecting…'}
+              </p>
               <p>
                 <span className="text-meta">Timestamp:</span>{' '}
                 {format(new Date(deviceInfo.timestamp), 'dd MMM yyyy, HH:mm:ss')}

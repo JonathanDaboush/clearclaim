@@ -90,7 +90,7 @@ export default function DashboardPage() {
           <section className="card">
             <div className="card-header flex items-center justify-between">
               <h2 className="text-sm font-semibold text-primary">Security Alerts</h2>
-              <Link to="/devices" className="text-xs text-accent hover:text-accent-hover">Manage devices</Link>
+              <Link to="/security-alerts" className="text-xs text-accent hover:text-accent-hover">Review &amp; act</Link>
             </div>
             {securityAlerts.length === 0 ? (
               <div className="card-body py-6 text-center"><p className="text-xs text-meta">No security alerts.</p></div>

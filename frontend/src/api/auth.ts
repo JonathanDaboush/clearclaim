@@ -45,11 +45,11 @@ export const authApi = {
 
   /** GET /user/get_devices ?user_id=... */
   getDevices: (user_id: string) =>
-    rpcGet<{ id: string; device_info: string; trusted: boolean; added_at?: string }[]>('/user/get_devices', { user_id }),
+    rpcGet<{ id: string; device_info: string; location: string; trusted: boolean; added_at?: string; last_activity?: string }[]>('/user/get_devices', { user_id }),
 
-  /** POST /user/add_device args=[user_id, device_info] */
-  addDevice: (user_id: string, device_info: string) =>
-    rpcPost<{ status: string; device_id: string }>('/user/add_device', [user_id, device_info]),
+  /** POST /user/add_device args=[user_id, device_info, location] */
+  addDevice: (user_id: string, device_info: string, location?: string) =>
+    rpcPost<{ status: string; device_id: string }>('/user/add_device', [user_id, device_info, location ?? '']),
 
   /** POST /user/verify_new_device args=[user_id, device_id] */
   verifyNewDevice: (user_id: string, device_id: string) =>

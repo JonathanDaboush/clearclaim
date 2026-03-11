@@ -1,5 +1,6 @@
 ﻿import { useMutation } from '@tanstack/react-query';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth';
 import { Button } from '@/components/common/Button';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -10,12 +11,15 @@ import { toast } from 'react-toastify';
 interface DeviceRow {
   id: string;
   device_info: string;
+  location: string;
   trusted: boolean;
   added_at?: string;
+  last_activity?: string;
 }
 
 export default function DevicesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { session } = useAuthStore();
 
   const { data: devices = [], isLoading } = useQuery({
@@ -36,11 +40,18 @@ export default function DevicesPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Trusted Devices</h1>
-        <p className="page-subtitle">
-          Devices that have been registered to your account. You may revoke any device at any time.
-          Revoked devices cannot sign contracts or access the system.
-        </p>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="page-title">Trusted Devices</h1>
+            <p className="page-subtitle">
+              Devices that have been registered to your account. You may revoke any device at any time.
+              Revoked devices cannot sign contracts or access the system.
+            </p>
+          </div>
+          <Button variant="primary" size="sm" onClick={() => navigate('/new-device')}>
+            Approve New Device
+          </Button>
+        </div>
       </div>
 
       <div className="px-6 pb-10 space-y-4">
@@ -51,14 +62,14 @@ export default function DevicesPage() {
 
         <div className="card">
           <div className="divide-y divide-border">
-            {isLoading && <p className="px-5 py-4 text-sm text-secondary">Loadingâ€¦</p>}
+            {isLoading && <p className="px-5 py-4 text-sm text-secondary">Loading…</p>}
             {!isLoading && (devices as DeviceRow[]).length === 0 && (
               <p className="px-5 py-4 text-sm text-secondary">No registered devices.</p>
             )}
             {(devices as DeviceRow[]).map((device) => (
-              <div key={device.id} className="px-5 py-4 flex items-center gap-4">
-                <div className="w-9 h-9 rounded-lg bg-section flex items-center justify-center shrink-0">
-                  <svg className="w-4 h-4 text-meta" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div key={device.id} className="px-5 py-4 flex items-start gap-4">
+                <div className="w-9 h-9 rounded-lg bg-section flex items-center justify-center shrink-0 mt-0.5">
+                  <svg aria-hidden="true" className="w-4 h-4 text-meta" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
@@ -67,11 +78,19 @@ export default function DevicesPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-primary">{device.device_info}</p>
                   <p className="text-xs text-meta mt-0.5 font-mono truncate">{device.id}</p>
-                  {device.added_at && (
+                  {device.location && (
                     <p className="text-xs text-meta mt-0.5">
-                      Added {format(new Date(device.added_at), 'dd MMM yyyy, HH:mm')}
+                      <span className="text-secondary">Location:</span> {device.location}
                     </p>
                   )}
+                  <p className="text-xs text-meta mt-0.5">
+                    <span className="text-secondary">Last activity:</span>{' '}
+                    {device.last_activity
+                      ? format(new Date(device.last_activity), 'dd MMM yyyy, HH:mm')
+                      : device.added_at
+                      ? format(new Date(device.added_at), 'dd MMM yyyy, HH:mm')
+                      : '—'}
+                  </p>
                 </div>
 
                 <StatusBadge status={device.trusted ? 'verified' : 'failed'} />

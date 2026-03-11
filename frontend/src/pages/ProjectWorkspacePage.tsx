@@ -173,16 +173,38 @@ export default function ProjectWorkspacePage() {
               <div
                 key={contract.id}
                 className="card p-4 flex items-center justify-between gap-4 hover:bg-section transition-colors cursor-pointer"
+                role="button"
+                tabIndex={0}
+                aria-label={`Open contract ${contract.id}`}
                 onClick={() => navigate(`/projects/${projectId}/contracts/${contract.id}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/projects/${projectId}/contracts/${contract.id}`); } }}
               >
                 <div>
-                  <p className="text-sm font-medium text-primary">Contract</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium text-primary">Contract</p>
+                    {contract.current_version && (
+                      <span className="text-xs text-accent font-medium">v{contract.current_version}</span>
+                    )}
+                    {contract.status && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                        contract.status === 'active' ? 'bg-green-50 text-confirmed'
+                        : contract.status === 'signed' ? 'bg-blue-50 text-accent'
+                        : contract.status === 'archived' ? 'bg-gray-100 text-meta'
+                        : 'bg-yellow-50 text-pending'
+                      }`}>{contract.status}</span>
+                    )}
+                  </div>
                   <p className="text-xs text-meta font-mono mt-0.5">{contract.id}</p>
                   <p className="text-xs text-secondary mt-1">
                     Created {format(new Date(contract.created_at), 'dd MMM yyyy')} by {contract.created_by}
                   </p>
+                  {contract.last_revised_at && (
+                    <p className="text-xs text-meta mt-0.5">
+                      Last revised {format(new Date(contract.last_revised_at), 'dd MMM yyyy, HH:mm')}
+                    </p>
+                  )}
                 </div>
-                <svg className="w-4 h-4 text-meta shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="w-4 h-4 text-meta shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>

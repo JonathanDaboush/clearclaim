@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { projectsApi } from '@/api/projects';
 import { evidenceApi, type EvidenceData } from '@/api/evidence';
@@ -24,6 +24,7 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [copied, setCopied] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const isImage = (ev.file_type ?? '').startsWith('image/');
   const isVideo = (ev.file_type ?? '').startsWith('video/');
@@ -174,6 +175,14 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
         onMouseLeave={onMouseUp}
         style={{ cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default' }}
         onDoubleClick={() => zoom === 1 ? setZoom(2) : reset()}
+        onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          if (touchStartX === null) return;
+          const delta = e.changedTouches[0].clientX - touchStartX;
+          if (delta > 50 && hasPrev) onPrev();
+          else if (delta < -50 && hasNext) onNext();
+          setTouchStartX(null);
+        }}
       >
         {isImage && (
           <img
@@ -235,7 +244,7 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
         {ev.file_hash && <span><span className="text-white/40">Hash:</span> <span className="font-mono">{ev.file_hash.slice(0, 24)}…</span></span>}
         {ev.file_size && <span><span className="text-white/40">Size:</span> {(ev.file_size / 1024).toFixed(1)} KB</span>}
         <span><span className="text-white/40">Contract:</span> <span className="font-mono">{ev.contract_id.slice(0, 16)}…</span></span>
-        <span className="text-white/40 ml-auto">← → navigate · scroll/+− zoom · 0 reset · Esc close</span>
+        <span className="text-white/40 ml-auto">← → navigate · swipe · scroll/+− zoom · 0 reset · Esc close</span>
       </div>
     </div>
   );

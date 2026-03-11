@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '@/api/auth';
 import { Button } from '@/components/common/Button';
@@ -7,6 +7,63 @@ import { useAuthStore } from '@/stores/authStore';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+
+const CONSENT_KEY = 'clearclaim_marketing_consent';
+
+function ConsentManagement() {
+  const [marketing, setMarketing] = useState<boolean>(() => {
+    return localStorage.getItem(CONSENT_KEY) !== 'false';
+  });
+
+  useEffect(() => {
+    localStorage.setItem(CONSENT_KEY, String(marketing));
+  }, [marketing]);
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <h2 className="text-sm font-semibold text-primary">Consent Management</h2>
+      </div>
+      <div className="card-body space-y-4">
+        <p className="text-sm text-secondary">
+          Manage your preferences for how ClearClaim uses your data beyond what is strictly
+          necessary to operate the service. You can change these at any time.
+        </p>
+
+        {/* Marketing consent */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-primary">Marketing &amp; product updates</p>
+            <p className="text-xs text-secondary mt-0.5">
+              Receive product announcements, feature highlights, and relevant legal-tech news
+              by email. We will never sell your contact details.
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={marketing}
+            aria-label="Toggle marketing emails"
+            onClick={() => {
+              setMarketing((v) => !v);
+              toast.success(marketing ? 'Marketing emails disabled.' : 'Marketing emails enabled.');
+            }}
+            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${marketing ? 'bg-accent' : 'bg-border'}`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${marketing ? 'translate-x-5' : 'translate-x-0'}`}
+            />
+          </button>
+        </div>
+
+        {/* Essential notice */}
+        <div className="legal-notice text-xs">
+          Essential service communications (security alerts, account changes, legal agreement
+          notifications) are not subject to marketing consent and will always be delivered.
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function PrivacyPage() {
   const { session, clearSession } = useAuthStore();
@@ -146,6 +203,105 @@ export default function PrivacyPage() {
             </Button>
           </div>
         </div>
+
+        {/* Privacy Policy & Terms of Service */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-sm font-semibold text-primary">Privacy Policy &amp; Terms of Service</h2>
+          </div>
+          <div className="card-body space-y-3 text-sm text-secondary">
+            <p>
+              ClearClaim operates under the Personal Information Protection and Electronic Documents Act
+              (PIPEDA) and applicable provincial privacy legislation. Where users are located in California,
+              the California Consumer Privacy Act (CCPA) rights apply. Electronic signatures are legally
+              binding under ESIGN (USA), UETA (USA), and eIDAS (EU) as applicable.
+            </p>
+            <p>
+              <strong className="text-primary">Your rights:</strong> You have the right to access, correct,
+              and port your personal data. You may withdraw consent for non-essential processing at any time
+              without affecting the lawfulness of prior processing. Requests can be submitted via the &ldquo;Export
+              Your Data&rdquo; section above or by contacting{' '}
+              <a href="mailto:privacy@clearclaim.io" className="text-accent underline">privacy@clearclaim.io</a>.
+            </p>
+            <p>
+              <strong className="text-primary">Governing law:</strong> This agreement is governed by the laws
+              of the Province of Ontario, Canada. Any disputes shall be resolved through binding arbitration
+              in Toronto, Ontario, except where prohibited by applicable consumer-protection legislation.
+            </p>
+            <p>
+              <strong className="text-primary">Data retention:</strong> Account data is retained for the
+              duration of your account. Evidence, signatures, and audit logs tied to legally executed
+              agreements are retained for a minimum of 7 years as required by applicable law, regardless
+              of account status.
+            </p>
+          </div>
+        </div>
+
+        {/* Data Breach Notification */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-sm font-semibold text-primary">Data Breach Notification</h2>
+          </div>
+          <div className="card-body space-y-3 text-sm text-secondary">
+            <p>
+              In the event of a security incident that creates a real risk of significant harm, ClearClaim will
+              notify affected users and the applicable privacy commissioner within <strong className="text-primary">72 hours</strong> of
+              becoming aware of the breach, in accordance with PIPEDA Breach of Security Safeguards Regulations.
+            </p>
+            <p>
+              Notifications will be sent to the email address registered with your account and will include:
+              a description of the incident, the personal information involved, steps taken to reduce risk,
+              and recommended actions you can take to protect yourself.
+            </p>
+            <p className="text-xs text-meta">
+              To report a suspected security issue, contact{' '}
+              <a href="mailto:security@clearclaim.io" className="text-accent underline">security@clearclaim.io</a>.
+            </p>
+          </div>
+        </div>
+
+        {/* Data Localization */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-sm font-semibold text-primary">Data Localization</h2>
+          </div>
+          <div className="card-body space-y-3 text-sm text-secondary">
+            <p>
+              ClearClaim stores all user data on servers located in <strong className="text-primary">Canada (Ontario)</strong>.
+              No personal data is transferred outside Canada except where required to deliver a specific
+              integration you have explicitly enabled (e.g. third-party identity verification providers).
+              In such cases, equivalent safeguards are in place per PIPEDA Schedule 1 Principle 7.
+            </p>
+            <p className="text-xs text-meta">
+              Compliance basis: PIPEDA — Schedule 1 Principles; SOC 2 Type II controls applied to
+              infrastructure. Audit reports available on request.
+            </p>
+          </div>
+        </div>
+
+        {/* Consent Management */}
+        <ConsentManagement />
+
+        {/* Accessibility Statement */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-sm font-semibold text-primary">Accessibility Statement</h2>
+          </div>
+          <div className="card-body space-y-3 text-sm text-secondary">
+            <p>
+              ClearClaim is committed to ensuring digital accessibility for people with disabilities.
+              This application aims to conform to the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA.
+              We continually evaluate and improve the user experience for everyone.
+            </p>
+            <p>
+              If you experience accessibility barriers or require this content in an accessible format,
+              please contact{' '}
+              <a href="mailto:accessibility@clearclaim.io" className="text-accent underline">accessibility@clearclaim.io</a>.
+              We aim to respond to accessibility requests within 2 business days.
+            </p>
+          </div>
+        </div>
+
       </div>
 
       {/* Delete confirmation modal */}

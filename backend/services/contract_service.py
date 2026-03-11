@@ -53,6 +53,17 @@ class ContractService:
         NotificationService().create_notification(user_id, "revision_approved", f"You approved revision {contract_version_id}.")
         return {"status": "Revision approved"}
 
+    def reject_contract_revision(self, contract_version_id: str, user_id: str) -> Dict[str, Any]:
+        """Mark a contract revision as rejected. Prevents it from being activated."""
+        import db as _db
+        _db.execute(
+            "UPDATE contract_versions SET rejected = TRUE WHERE id = %s",
+            (contract_version_id,),
+        )
+        AuditService().log_event("reject_contract_revision", user_id, {"version_id": contract_version_id})
+        NotificationService().create_notification(user_id, "revision_rejected", f"Revision {contract_version_id} has been rejected.")
+        return {"status": "Revision rejected"}
+
     def check_revision_unanimous_approval(self, contract_version_id: str, required_user_ids: Set[str]) -> bool:
         """Return True if all required parties have approved the revision."""
         return ContractVersionsRepository.check_unanimous(contract_version_id, required_user_ids)

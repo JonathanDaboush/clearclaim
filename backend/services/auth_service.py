@@ -75,9 +75,9 @@ class AuthService:
         NotificationService().create_notification(user_id, "account_removed", "Your account has been removed. Audit records are retained as required by law.")
         return {"status": "Account removed"}
 
-    def register_device(self, user_id: str, device_info: str) -> Dict[str, Any]:
+    def register_device(self, user_id: str, device_info: str, location: str = '') -> Dict[str, Any]:
         """Register a new device (untrusted pending authenticator + email challenge)."""
-        device_id = DevicesRepository.add_device(user_id, device_info)
+        device_id = DevicesRepository.add_device(user_id, device_info, location)
         AuditService().log_event("device_registered", user_id, {"device_id": device_id})
         NotificationService().create_notification(user_id, "device_added", f"New device registered: {device_info}. Verify it to trust it. If this wasn't you, revoke it immediately.")
         return {"status": "Device registered — awaiting verification", "device_id": device_id}

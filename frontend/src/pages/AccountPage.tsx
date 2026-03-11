@@ -215,6 +215,32 @@ export default function AccountPage() {
           </div>
         </div>
 
+        {/* Remove Account */}
+        <div className="card border border-disputed/30">
+          <div className="card-header">
+            <h2 className="text-sm font-semibold text-disputed">Remove Account</h2>
+          </div>
+          <div className="card-body space-y-3">
+            <p className="text-sm text-secondary">
+              Permanently remove your account. Audit logs and signed evidence are preserved
+              as required by law. This action cannot be undone.
+            </p>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                if (window.confirm('Remove your account permanently? Audit logs are preserved but your access will be revoked.')) {
+                  authApi.removeAccount(session!.user_id).then(() => {
+                    clearSession();
+                  });
+                }
+              }}
+            >
+              Remove Account
+            </Button>
+          </div>
+        </div>
+
       </div>
 
       {/* Change-password modal */}
