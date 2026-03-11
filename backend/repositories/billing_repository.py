@@ -47,13 +47,22 @@ class BillingRepository:
 
     def generate_billing_metrics(self, user_id: str) -> Dict[str, Any]:
         total_row = db.query(
-            "SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE user_id = %s",
+            "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS cnt FROM payments WHERE user_id = %s",
             (user_id,),
         )
         total_paid = float(total_row[0]["total"]) if total_row else 0.0
+        payment_count = int(total_row[0]["cnt"]) if total_row else 0
         sub_row = db.query(
-            "SELECT COUNT(*) AS cnt FROM subscriptions WHERE user_id = %s",
+            "SELECT tier, status, end_date::text AS end_date FROM subscriptions WHERE user_id = %s ORDER BY start_date DESC LIMIT 1",
             (user_id,),
         )
-        subscription_count = int(sub_row[0]["cnt"]) if sub_row else 0
-        return {"total_paid": total_paid, "subscriptions": subscription_count}
+        current_tier = sub_row[0]["tier"] if sub_row else None
+        subscription_status = sub_row[0]["status"] if sub_row else None
+        next_payment_date = sub_row[0]["end_date"] if sub_row else None
+        return {
+            "total_paid": total_paid,
+            "payment_count": payment_count,
+            "current_tier": current_tier,
+            "subscription_status": subscription_status,
+            "next_payment_date": next_payment_date,
+        }

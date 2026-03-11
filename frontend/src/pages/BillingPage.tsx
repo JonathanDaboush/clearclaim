@@ -32,6 +32,7 @@ export default function BillingPage() {
   const totalPaid = metrics?.total_paid ?? 0;
   const tier = metrics?.current_tier ?? 'guest';
   const subStatus = metrics?.subscription_status ?? 'none';
+  const nextPayment = metrics?.next_payment_date ?? null;
 
   return (
     <div>
@@ -61,6 +62,11 @@ export default function BillingPage() {
             label="Payments"
             value={String(metrics?.payment_count ?? 0)}
             sub="Recorded transactions"
+          />
+          <MetricTile
+            label="Next Payment Date"
+            value={nextPayment ? format(new Date(nextPayment), 'dd MMM yyyy') : '—'}
+            sub={subStatus === 'active' ? 'Subscription renews' : 'No active subscription'}
           />
         </div>
 

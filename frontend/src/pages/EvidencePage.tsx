@@ -245,10 +245,14 @@ function EvidenceViewer({ ev, onClose, onPrev, onNext, hasPrev, hasNext }: {
 
 export default function EvidencePage() {
   const { session } = useAuthStore();
-  const [search,     setSearch]     = useState('');
-  const [typeFilter, setTypeFilter] = useState<FilterType>('all');
-  const [viewerIdx,  setViewerIdx]  = useState<number | null>(null);
-  const [selected,   setSelected]   = useState<Set<string>>(new Set());
+  const [search,         setSearch]         = useState('');
+  const [typeFilter,     setTypeFilter]     = useState<FilterType>('all');
+  const [dateFrom,       setDateFrom]       = useState('');
+  const [dateTo,         setDateTo]         = useState('');
+  const [projectFilter,  setProjectFilter]  = useState('');
+  const [contractFilter, setContractFilter] = useState('');
+  const [viewerIdx,      setViewerIdx]      = useState<number | null>(null);
+  const [selected,       setSelected]       = useState<Set<string>>(new Set());
 
   const toggleSelect = (id: string) => setSelected((s) => {
     const next = new Set(s);
@@ -328,7 +332,13 @@ export default function EvidencePage() {
       ev.added_by.toLowerCase().includes(searchLower) ||
       ev.file_url.toLowerCase().includes(searchLower) ||
       (ev.file_type ?? '').toLowerCase().includes(searchLower);
-    return matchesType && matchesSearch;
+    const evDate = ev.created_at ? new Date(ev.created_at) : null;
+    const matchesDateFrom = !dateFrom || (evDate !== null && evDate >= new Date(dateFrom));
+    const matchesDateTo   = !dateTo   || (evDate !== null && evDate <= new Date(dateTo + 'T23:59:59'));
+    const contract = (contracts as { id: string; project_id: string }[]).find((c) => c.id === ev.contract_id);
+    const matchesProject  = !projectFilter  || contract?.project_id === projectFilter;
+    const matchesContract = !contractFilter || ev.contract_id === contractFilter;
+    return matchesType && matchesSearch && matchesDateFrom && matchesDateTo && matchesProject && matchesContract;
   });
 
   const typeLabels: { id: FilterType; label: string }[] = [
@@ -357,6 +367,42 @@ export default function EvidencePage() {
             className="form-input max-w-xs"
             placeholder="Search by uploader, file name, type..."
           />
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="form-input w-36"
+            title="Date from"
+          />
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="form-input w-36"
+            title="Date to"
+          />
+          <select
+            value={projectFilter}
+            onChange={(e) => { setProjectFilter(e.target.value); setContractFilter(''); }}
+            className="form-input max-w-[180px]"
+          >
+            <option value="">All projects</option>
+            {(projects as { id: string; name: string }[]).map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <select
+            value={contractFilter}
+            onChange={(e) => setContractFilter(e.target.value)}
+            className="form-input max-w-[180px]"
+          >
+            <option value="">All contracts</option>
+            {(contracts as { id: string; project_id: string }[])
+              .filter((c) => !projectFilter || c.project_id === projectFilter)
+              .map((c) => (
+                <option key={c.id} value={c.id}>{c.id.slice(0, 12)}…</option>
+              ))}
+          </select>
           <div className="flex gap-1">
             {typeLabels.map((t) => (
               <button

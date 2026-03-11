@@ -24,6 +24,7 @@ export interface BillingMetrics {
   payment_count: number;
   current_tier: string | null;
   subscription_status: string | null;
+  next_payment_date: string | null;
 }
 
 export const billingApi = {

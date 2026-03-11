@@ -11,6 +11,7 @@ interface DeviceRow {
   id: string;
   device_info: string;
   trusted: boolean;
+  added_at?: string;
 }
 
 export default function DevicesPage() {
@@ -66,6 +67,11 @@ export default function DevicesPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-primary">{device.device_info}</p>
                   <p className="text-xs text-meta mt-0.5 font-mono truncate">{device.id}</p>
+                  {device.added_at && (
+                    <p className="text-xs text-meta mt-0.5">
+                      Added {format(new Date(device.added_at), 'dd MMM yyyy, HH:mm')}
+                    </p>
+                  )}
                 </div>
 
                 <StatusBadge status={device.trusted ? 'verified' : 'failed'} />

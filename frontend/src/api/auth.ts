@@ -45,7 +45,7 @@ export const authApi = {
 
   /** GET /user/get_devices ?user_id=... */
   getDevices: (user_id: string) =>
-    rpcGet<{ id: string; device_info: string; trusted: boolean }[]>('/user/get_devices', { user_id }),
+    rpcGet<{ id: string; device_info: string; trusted: boolean; added_at?: string }[]>('/user/get_devices', { user_id }),
 
   /** POST /user/add_device args=[user_id, device_info] */
   addDevice: (user_id: string, device_info: string) =>
