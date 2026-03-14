@@ -4,11 +4,13 @@ export type Role = 'worker_manager' | 'worker' | 'legal_rep' | 'client' | 'guest
 
 export type ContractState =
   | 'draft'
-  | 'under_review'
-  | 'approved'
-  | 'active'
-  | 'disputed'
-  | 'terminated';
+  | 'proposed'
+  | 'revision_pending'
+  | 'revision_approved'
+  | 'ready_for_signature'
+  | 'fully_signed'
+  | 'rejected'
+  | 'archived';
 
 export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'failed';
 

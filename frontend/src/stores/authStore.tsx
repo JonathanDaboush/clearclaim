@@ -1,11 +1,15 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 
 export interface Session {
   user_id: string;
   email: string;
-  totp_secret: string; // stored client-side for TOTP verification calls
+  totp_secret: string;
   device_id: string;
   verification_status: string;
+  // JWT tokens
+  access_token: string;
+  refresh_token: string;
+  expires_at: number;   // Unix timestamp (ms) when access_token expires
 }
 
 interface AuthState {
@@ -49,6 +53,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = useCallback(() => {
     localStorage.removeItem(AUTH_KEY);
     setSessionState(null);
+  }, []);
+
+  // Listen for token refresh events from the axios interceptor
+  useEffect(() => {
+    const onRefresh = (e: Event) => {
+      const updated = (e as CustomEvent<Session>).detail;
+      setSessionState(updated);
+    };
+    const onExpired = () => {
+      localStorage.removeItem(AUTH_KEY);
+      setSessionState(null);
+    };
+    window.addEventListener('cc:token_refreshed', onRefresh);
+    window.addEventListener('cc:session_expired', onExpired);
+    return () => {
+      window.removeEventListener('cc:token_refreshed', onRefresh);
+      window.removeEventListener('cc:session_expired', onExpired);
+    };
   }, []);
 
   return (

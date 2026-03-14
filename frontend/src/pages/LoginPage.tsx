@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '@/api/auth';
 import { useAuthStore, type Session } from '@/stores/authStore';
@@ -9,6 +9,8 @@ type Phase = 'credentials' | 'totp';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const enrolled = (location.state as { enrolled?: boolean } | null)?.enrolled ?? false;
   const { setSession } = useAuthStore();
   const [phase,       setPhase]       = useState<Phase>('credentials');
   const [email,       setEmail]       = useState('');
@@ -39,7 +41,7 @@ export default function LoginPage() {
     mutationFn: () =>
       authApi.verifyTotp(pendingData!.user_id, pendingData!.totp_secret, totpCode),
     onSuccess: (valid) => {
-      if (!valid) {
+      if (!valid?.valid) {
         setError('Authentication code invalid or expired.');
         return;
       }
@@ -49,6 +51,9 @@ export default function LoginPage() {
         totp_secret: pendingData!.totp_secret,
         device_id: '',
         verification_status: pendingData!.verification_status,
+        access_token: valid.access_token ?? '',
+        refresh_token: valid.refresh_token ?? '',
+        expires_at: Date.now() + (valid.expires_in ?? 900) * 1000,
       };
       setSession(s);
       navigate('/dashboard');
@@ -69,6 +74,12 @@ export default function LoginPage() {
           <h1 className="text-xl font-semibold text-primary">ClearClaim</h1>
           <p className="text-sm text-secondary mt-1">Legal Agreement Platform</p>
         </div>
+
+        {enrolled && (
+          <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+            Authenticator enrolled successfully. Sign in below.
+          </div>
+        )}
 
         <div className="card">
           <div className="card-body space-y-5">

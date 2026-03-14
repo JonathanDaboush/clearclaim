@@ -3,15 +3,15 @@ services:
   backend:
     build:
       context: ./backend
-    environment:
-      # Use telecom_test for testing
-      DATABASE_URL: postgresql+psycopg2://postgres:password@postgres:5432/clear_case
-      REDIS_URL: redis://redis:6379/0
+    env_file:
+      - ../.env.dev          # override with ../.env.staging or ../.env.prod at deploy time
     ports:
-      - '8000:8000'
+      - '8080:8080'
     depends_on:
-      - redis
-      - postgres
+      postgres:
+        condition: service_healthy
+    volumes:
+      - evidence_uploads:/app/uploads
 
   frontend:
     build:
@@ -21,21 +21,22 @@ services:
     depends_on:
       - backend
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - '6379:6379'
-
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: clear_case
+      POSTGRES_DB: clearclaim_dev
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: devpassword
     volumes:
-      - ./sql/initdb:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     ports:
       - '5432:5432'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   nginx:
     image: nginx:alpine
@@ -44,3 +45,7 @@ services:
     depends_on:
       - frontend
       - backend
+
+volumes:
+  postgres_data:
+  evidence_uploads:

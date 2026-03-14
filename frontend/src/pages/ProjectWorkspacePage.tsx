@@ -5,7 +5,7 @@ import { projectsApi } from '@/api/projects';
 import type { ProjectData, MemberData } from '@/api/projects';
 import { contractsApi } from '@/api/contracts';
 import type { ContractData } from '@/api/contracts';
-import { AuditTrail } from '@/components/audit/AuditTrail';
+import { Timeline } from '@/components/audit/Timeline';
 import { EvidencePanel } from '@/components/evidence/EvidencePanel';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/common/Button';
@@ -150,9 +150,9 @@ export default function ProjectWorkspacePage() {
       </div>
 
       <div className="px-6 py-6">
-        {/* Timeline tab */}
+        {/* Timeline tab — visual vertical chronological spine */}
         {tab === 'timeline' && projectId && (
-          <AuditTrail projectId={projectId} />
+          <Timeline projectId={projectId} />
         )}
 
         {/* Contracts tab */}

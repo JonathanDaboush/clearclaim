@@ -19,10 +19,13 @@ class EvidenceRepository:
         file_size: Optional[int] = None,
         hash_value: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        timestamp_proof: str = '',
+        uploader_hash: str = '',
     ) -> str:
         evidence_id = str(uuid.uuid4())
         db.execute(
-            "INSERT INTO evidence (id, contract_id, added_by, file_url, file_type, file_size, hash_value, metadata) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            "INSERT INTO evidence (id, contract_id, added_by, file_url, file_type, file_size, hash_value, metadata, timestamp_proof, uploader_hash) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (
                 evidence_id,
                 contract_id,
@@ -32,6 +35,8 @@ class EvidenceRepository:
                 file_size,
                 hash_value,
                 json.dumps(metadata) if isinstance(metadata, dict) else metadata,
+                timestamp_proof,
+                uploader_hash,
             ),
         )
         # also populate the evidence_contracts join table (spec §13)

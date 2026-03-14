@@ -2,21 +2,21 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '@/api/auth';
-import { useAuthStore, type Session } from '@/stores/authStore';
 import { Button } from '@/components/common/Button';
 
 type Phase = 'form' | 'totp_setup';
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { setSession } = useAuthStore();
   const [phase,       setPhase]       = useState<Phase>('form');
   const [email,       setEmail]       = useState('');
   const [password,    setPassword]    = useState('');
   const [password2,   setPassword2]   = useState('');
   const [totpSecret,  setTotpSecret]  = useState('');
-  const [userId,      setUserId]      = useState('');
+  const [totpConfirm, setTotpConfirm] = useState('');
+  const [tosAccepted, setTosAccepted] = useState(false);
   const [error,       setError]       = useState('');
+  const [userId,      setUserId]      = useState('');
 
   const signupMutation = useMutation({
     mutationFn: () => authApi.signup(email, password),
@@ -27,15 +27,6 @@ export default function SignupPage() {
       }
       setUserId(res.user_id!);
       setTotpSecret(res.totp_secret ?? '');
-      // Save session so user can skip TOTP on first visit (they can log in with it)
-      const s: Session = {
-        user_id: res.user_id!,
-        email,
-        totp_secret: res.totp_secret ?? '',
-        device_id: '',
-        verification_status: 'unverified',
-      };
-      setSession(s);
       setPhase('totp_setup');
       setError('');
     },
@@ -48,6 +39,7 @@ export default function SignupPage() {
     if (!email.includes('@')) return 'Enter a valid email address.';
     if (password.length < 12)  return 'Password must be at least 12 characters.';
     if (password !== password2) return 'Passwords do not match.';
+    if (!tosAccepted) return 'You must accept the Terms of Service and E-Sign Disclosure to continue.';
     return '';
   };
 
@@ -56,11 +48,6 @@ export default function SignupPage() {
     if (err) { setError(err); return; }
     signupMutation.mutate();
   };
-
-  // Generate a TOTP URI using the standard format so any authenticator app can scan it
-  const totpUri = totpSecret
-    ? `otpauth://totp/ClearClaim:${encodeURIComponent(email)}?secret=${totpSecret}&issuer=ClearClaim`
-    : '';
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
@@ -121,6 +108,23 @@ export default function SignupPage() {
 
                 {error && <p className="form-error">{error}</p>}
 
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tosAccepted}
+                    onChange={(e) => setTosAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
+                  />
+                  <span className="text-xs text-secondary leading-relaxed">
+                    I agree to the{' '}
+                    <Link to="/legal/terms" className="text-accent hover:underline">Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link to="/legal/esignature" className="text-accent hover:underline">E-Sign Disclosure</Link>.
+                    I understand that my electronic signature has the same legal effect as a handwritten signature
+                    under ESIGN and UETA.
+                  </span>
+                </label>
+
                 <Button
                   variant="primary"
                   className="w-full justify-center"
@@ -137,22 +141,32 @@ export default function SignupPage() {
                 <h2 className="text-base font-semibold text-primary">Set Up Authenticator App</h2>
                 <p className="text-sm text-secondary leading-relaxed">
                   This platform requires an authenticator app for login and every signing action.
-                  Scan the QR code below with Google Authenticator, Authy, or any TOTP-compatible app.
+                  Add the key below manually into Google Authenticator, Authy, or any TOTP-compatible app.
                 </p>
 
-                {totpUri && (
-                  <div className="flex flex-col items-center gap-3 py-2">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(totpUri)}`}
-                      alt="TOTP QR Code â€” scan with authenticator app"
-                      className="border border-border rounded p-2"
-                      width={180}
-                      height={180}
-                    />
-                    <p className="text-xs text-secondary">Manual entry key:</p>
-                    <code className="record-box text-center px-4 py-2 select-all">{totpSecret}</code>
+                {totpSecret && (
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <p className="text-xs text-meta">Manual entry key (never share this):</p>
+                    <code className="record-box block w-full text-center px-4 py-3 select-all text-sm break-all">{totpSecret}</code>
                   </div>
                 )}
+
+                <div className="space-y-1">
+                  <label className="form-label" htmlFor="totp-confirm">
+                    Enter the 6-digit code from your app to confirm setup
+                  </label>
+                  <input
+                    id="totp-confirm"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={totpConfirm}
+                    onChange={(e) => { setTotpConfirm(e.target.value.replace(/\D/g, '')); setError(''); }}
+                    className="form-input tracking-widest text-center text-lg"
+                    placeholder="000000"
+                    autoComplete="one-time-code"
+                  />
+                </div>
 
                 <div className="legal-notice text-xs">
                   Keep your authenticator app accessible. It is required for every login and
@@ -160,12 +174,24 @@ export default function SignupPage() {
                   identity verification.
                 </div>
 
+                {error && <p className="form-error">{error}</p>}
+
                 <Button
                   variant="primary"
                   className="w-full justify-center"
-                  onClick={() => navigate('/dashboard')}
+                  disabled={totpConfirm.length !== 6}
+                  onClick={() => {
+                    authApi.verifyTotp(userId, totpSecret, totpConfirm).then((result) => {
+                      if (result?.valid) {
+                        navigate('/login', { state: { enrolled: true } });
+                      } else {
+                        setError('Code did not match. Check your app and try again.');
+                        setTotpConfirm('');
+                      }
+                    }).catch(() => setError('Verification failed. Try again.'));
+                  }}
                 >
-                  I've Set Up My Authenticator â€” Continue
+                  Confirm and Continue to Login
                 </Button>
               </>
             )}

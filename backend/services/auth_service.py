@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 from repositories.users_repo import UsersRepository
 from repositories.devices_repo import DevicesRepository
 from repositories.identity_verification_repo import IdentityVerificationRepository
-from utils.security_utils import hash_password, verify_password, verify_totp
+from utils.security_utils import hash_password, verify_password, verify_totp as _verify_totp_code
 from services.notification_service import NotificationService
 from services.audit_service import AuditService
 
@@ -12,6 +12,11 @@ class AuthService:
     def create_user(self, email: str, password: str, age: Optional[int] = None, consent: Optional[bool] = None) -> Dict[str, Any]:
         """Create a new user account.
         Enforces parental consent for under-13, records consent, notifies about accessibility."""
+        from utils.validators import validate_user_signup, ValidationError
+        try:
+            validate_user_signup(email, password)
+        except ValidationError as exc:
+            return {"status": "error", "message": str(exc)}
         if age is not None and age < 13:
             NotificationService().create_notification(email, "parental_consent", "Parental consent required for users under 13.")
         if consent:
@@ -41,9 +46,13 @@ class AuthService:
             "verification_status": user["verification_status"],
         }
 
-    def verify_totp(self, user_id: str, totp_secret: str, code: str) -> bool:
-        """Verify a TOTP code for 2FA. Returns True if valid."""
-        return verify_totp(totp_secret, code)
+    def verify_totp(self, user_id: str, totp_secret: str, code: str) -> Dict[str, Any]:
+        """Verify a TOTP code. Issues JWT access + refresh tokens on success."""
+        if not _verify_totp_code(totp_secret, code):
+            return {"valid": False}
+        from utils.jwt_utils import issue_tokens
+        tokens = issue_tokens(user_id)
+        return {"valid": True, **tokens}
 
     def initiate_password_reset(self, email: str) -> Dict[str, Any]:
         """Send a password reset link to the user's email."""
@@ -53,7 +62,10 @@ class AuthService:
         reset_token = str(uuid.uuid4())
         UsersRepository.store_reset_token(reset_token, user["id"])
         AuditService().log_event("password_reset_initiated", user["id"], {})
-        NotificationService().create_notification(user["id"], "password_reset", f"Use token {reset_token} to reset your password.")
+        NotificationService().create_notification(
+            user["id"], "password_reset",
+            "A password reset link has been sent to your email address. It expires in 2 hours.",
+        )
         return {"status": "Reset email sent", "token": reset_token}
 
     def complete_password_reset(self, token: str, new_password: str) -> Dict[str, Any]:
@@ -63,6 +75,9 @@ class AuthService:
             return {"status": "error", "message": "Invalid or expired reset token."}
         new_hash = hash_password(new_password)
         UsersRepository.update_password(user_id, new_hash)
+        # Invalidate all active sessions so stolen passwords cannot be reused
+        from utils.jwt_utils import revoke_all_user_tokens
+        revoke_all_user_tokens(user_id)
         AuditService().log_event("password_reset_completed", user_id, {})
         return {"status": "Password reset successful"}
 
@@ -75,11 +90,19 @@ class AuthService:
         NotificationService().create_notification(user_id, "account_removed", "Your account has been removed. Audit records are retained as required by law.")
         return {"status": "Account removed"}
 
-    def register_device(self, user_id: str, device_info: str, location: str = '') -> Dict[str, Any]:
-        """Register a new device (untrusted pending authenticator + email challenge)."""
-        device_id = DevicesRepository.add_device(user_id, device_info, location)
+    def register_device(self, user_id: str, device_info: str, location: str = '', device_fingerprint: str = '') -> Dict[str, Any]:
+        """Register a new device — untrusted until verified by authenticator + email challenge.
+        
+        Security alert 5.3: notifies the account owner immediately so they can revoke if unexpected.
+        """
+        device_id = DevicesRepository.add_device(user_id, device_info, location, device_fingerprint)
         AuditService().log_event("device_registered", user_id, {"device_id": device_id})
-        NotificationService().create_notification(user_id, "device_added", f"New device registered: {device_info}. Verify it to trust it. If this wasn't you, revoke it immediately.")
+        NotificationService().create_notification(
+            user_id,
+            "new_device_login",
+            f"New device login detected: {device_info or 'Unknown device'} from {location or 'Unknown location'}. "
+            f"If this was not you, revoke the device immediately from Account → Devices.",
+        )
         return {"status": "Device registered — awaiting verification", "device_id": device_id}
 
     def verify_new_device(self, user_id: str, device_id: str) -> Dict[str, Any]:

@@ -26,6 +26,10 @@ def verify_audit_chain() -> bool:
     """Controller for verifying audit chain."""
     return audit_service.verify_audit_chain()
 
+def verify_audit_entries() -> Dict[str, Any]:
+    """Controller for per-entry audit chain integrity verification."""
+    return audit_service.verify_audit_entries()
+
 def recalculate_log_hash(entry: Any) -> str:
     """Controller for recalculating log hash."""
     return audit_service.recalculate_log_hash(entry)

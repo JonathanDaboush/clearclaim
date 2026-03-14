@@ -347,7 +347,7 @@ export default function EvidencePage() {
     enabled: projects.length > 0,
   });
 
-  const { data: allEvidence = [], isLoading } = useQuery({
+  const { data: allEvidence = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['all-evidence', contracts.map((c) => c.id)],
     queryFn: async () => {
       const all = await Promise.all(contracts.map((c) => evidenceApi.getContractEvidence(c.id)));
@@ -488,7 +488,20 @@ export default function EvidencePage() {
           </div>
         )}
 
-        {isLoading && <p className="text-sm text-meta py-6">Loading evidence...</p>}
+        {isLoading && <p className="text-sm text-meta py-6">Loading evidence…</p>}
+
+        {isError && (
+          <div className="card p-10 text-center">
+            <p className="text-sm text-disputed font-medium">Failed to load evidence.</p>
+            <p className="text-xs text-meta mt-1">Check your connection and try again.</p>
+            <button
+              className="mt-4 text-sm text-accent hover:underline"
+              onClick={() => refetch()}
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {!isLoading && allEvidence.length === 0 && (
           <div className="card p-10 text-center">

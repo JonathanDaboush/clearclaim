@@ -1,4 +1,5 @@
 import hashlib
+import datetime
 from typing import List, Dict, Any, Set
 from repositories.evidence_repo import EvidenceRepository
 from services.audit_service import AuditService
@@ -8,14 +9,24 @@ from services.notification_service import NotificationService
 class EvidenceService:
     def upload_evidence(self, contract_id: str, file_bytes: bytes, file_url: str, file_type: str, file_size: int, added_by: str) -> Dict[str, Any]:
         """Upload evidence: validate, hash, store, and log. Returns evidence ID."""
-        if not EvidenceRepository.validate_file_type(file_type):
-            return {"status": "error", "message": f"File type '{file_type}' not allowed."}
-        if not EvidenceRepository.validate_file_size(file_size):
-            return {"status": "error", "message": "File size exceeds limit."}
+        from utils.validators import validate_evidence_file, ValidationError
+        try:
+            validate_evidence_file(file_type, file_size)
+        except ValidationError as exc:
+            return {"status": "error", "message": str(exc)}
         if not EvidenceRepository.virus_scan(file_bytes):
             return {"status": "error", "message": "File failed virus scan."}
         hash_value = EvidenceRepository.calculate_file_hash(file_bytes)
         metadata = EvidenceRepository.generate_evidence_metadata(file_url, file_type, file_size)
+
+        # Integrity anchors ─────────────────────────────────────────────────
+        timestamp_proof = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        # Bind uploader identity, file hash, and timestamp into a single hash
+        # so any later dispute can verify all three properties at once.
+        uploader_hash = hashlib.sha256(
+            f"{added_by}:{hash_value}:{timestamp_proof}".encode()
+        ).hexdigest()
+
         evidence_id = EvidenceRepository.insert_evidence(
             contract_id=contract_id,
             added_by=added_by,
@@ -24,11 +35,38 @@ class EvidenceService:
             file_size=file_size,
             hash_value=hash_value,
             metadata=metadata,
+            timestamp_proof=timestamp_proof,
+            uploader_hash=uploader_hash,
         )
         EvidenceRepository.store_evidence_object(file_bytes, evidence_id)
-        AuditService().log_event("upload_evidence", added_by, {"contract_id": contract_id, "evidence_id": evidence_id})
+        AuditService().log_event("upload_evidence", added_by, {
+            "contract_id": contract_id,
+            "evidence_id": evidence_id,
+            "file_hash": hash_value,
+            "uploader_hash": uploader_hash,
+            "timestamp_proof": timestamp_proof,
+        })
         NotificationService().create_notification(added_by, "evidence_uploaded", f"Evidence uploaded for contract {contract_id}.")
-        return {"status": "Evidence uploaded", "evidence_id": evidence_id}
+        # Publish EvidenceUploaded domain event so listeners can fanout
+        try:
+            from events.event_bus import event_bus as _ev_bus
+            from events.domain_events import EvidenceUploaded as _EvidenceUploaded
+            _ev_bus.publish(_EvidenceUploaded(
+                evidence_id=evidence_id,
+                contract_id=contract_id,
+                added_by=added_by,
+                file_hash=hash_value,
+                timestamp_proof=timestamp_proof,
+            ))
+        except Exception:
+            pass
+        return {
+            "status": "Evidence uploaded",
+            "evidence_id": evidence_id,
+            "file_hash": hash_value,
+            "timestamp_proof": timestamp_proof,
+            "uploader_hash": uploader_hash,
+        }
 
     def validate_evidence_file(self, file_type: str, file_size: int) -> bool:
         """Return True if the file passes type and size checks."""
@@ -74,6 +112,8 @@ class EvidenceService:
 
     def activate_evidence(self, evidence_id: str) -> Dict[str, Any]:
         """Activate evidence after unanimous approval."""
+        import db as _db
+        _db.execute("UPDATE evidence SET status = 'active' WHERE id = %s", (evidence_id,))
         AuditService().log_event("activate_evidence", "system", {"evidence_id": evidence_id})
         return {"status": "Evidence activated"}
 

@@ -27,3 +27,7 @@ def export_audit_logs(contract_id: str) -> List[Dict[str, Any]]:
 def build_case_archive(contract_id: str) -> Dict[str, Any]:
     """Controller for building case archive."""
     return export_service.build_case_archive(contract_id)
+
+def build_case_archive_zip(contract_id: str) -> bytes:
+    """Controller for building a ZIP case archive for legal export."""
+    return export_service.build_case_archive_zip(contract_id)

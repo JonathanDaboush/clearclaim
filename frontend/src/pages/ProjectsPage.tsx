@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/common/Button';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
+import { OnboardingModal } from '@/components/common/OnboardingModal';
 import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 
@@ -22,8 +23,11 @@ export default function ProjectsPage() {
   const { session } = useAuthStore();
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState('');
+  const [onboardingOpen, setOnboardingOpen] = useState(
+    !localStorage.getItem('cc_onboarding_done'),
+  );
 
-  const { data: projects = [], isLoading } = useQuery<ProjectData[]>({
+  const { data: projects = [], isLoading, isError, refetch } = useQuery<ProjectData[]>({
     queryKey: ['projects', session?.user_id],
     queryFn: () => projectsApi.getUserProjects(session!.user_id),
     enabled: !!session?.user_id,
@@ -51,6 +55,11 @@ export default function ProjectsPage() {
 
   return (
     <div>
+      {/* First-run onboarding tour */}
+      {onboardingOpen && !isLoading && projects.length === 0 && (
+        <OnboardingModal onClose={() => setOnboardingOpen(false)} />
+      )}
+
       <div className="page-header flex items-center justify-between">
         <div>
           <h1 className="page-title">Projects</h1>
@@ -60,7 +69,15 @@ export default function ProjectsPage() {
       </div>
 
       <div className="px-6 pb-10">
-        {isLoading && <p className="text-sm text-meta py-4">Loadingâ€¦</p>}
+        {isLoading && <p className="text-sm text-meta py-4">Loading…</p>}
+
+        {isError && (
+          <div className="card text-center py-10">
+            <p className="text-sm text-disputed font-medium">Failed to load projects.</p>
+            <p className="text-xs text-meta mt-1">Check your connection and try again.</p>
+            <Button variant="ghost" className="mt-4" onClick={() => refetch()}>Retry</Button>
+          </div>
+        )}
 
         {!isLoading && projects.length === 0 && (
           <div className="card text-center py-12">

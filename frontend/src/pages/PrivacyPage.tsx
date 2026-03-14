@@ -6,7 +6,7 @@ import { Modal } from '@/components/common/Modal';
 import { useAuthStore } from '@/stores/authStore';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const CONSENT_KEY = 'clearclaim_marketing_consent';
 
@@ -201,6 +201,35 @@ export default function PrivacyPage() {
             >
               Request Account Deletion
             </Button>
+          </div>
+        </div>
+
+        {/* Legal Documents */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-sm font-semibold text-primary">Legal Documents</h2>
+          </div>
+          <div className="card-body divide-y divide-border">
+            {[
+              { to: '/legal/terms',         label: 'Terms of Service',                        desc: 'Governing terms for use of the platform' },
+              { to: '/privacy',             label: 'Privacy Policy',                          desc: 'How we collect, use, and protect your data (PIPEDA)' },
+              { to: '/legal/esignature',    label: 'Electronic Signature Disclosure',         desc: 'ESIGN Act consent and how signatures are recorded' },
+              { to: '/legal/data-retention',label: 'Data Retention Policy',                  desc: 'Retention periods for contracts, evidence, and audit logs' },
+            ].map(({ to, label, desc }) => (
+              <Link
+                key={to}
+                to={to}
+                className="flex items-center justify-between gap-4 py-3 group"
+              >
+                <div>
+                  <p className="text-sm font-medium text-primary group-hover:text-accent transition-colors">{label}</p>
+                  <p className="text-xs text-meta mt-0.5">{desc}</p>
+                </div>
+                <svg className="w-3.5 h-3.5 text-meta shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            ))}
           </div>
         </div>
 

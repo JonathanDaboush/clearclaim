@@ -5,6 +5,8 @@ from repositories.subgroup_repo import SubgroupRepository
 from repositories.membership_repo import MembershipRepository
 from services.audit_service import AuditService
 from services.notification_service import NotificationService
+from events.event_bus import event_bus
+from events.domain_events import ProjectCreated, MemberAdded
 
 
 class ProjectService:
@@ -13,7 +15,8 @@ class ProjectService:
         created_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
         project_id = ProjectRepository.insert_project(name, main_party_id, created_at)
         AuditService().log_event("create_project", main_party_id, {"name": name, "project_id": project_id})
-        NotificationService().create_notification(main_party_id, "project_created", f"Project '{name}' created.")
+        NotificationService().create_notification(main_party_id, "project_created", f"Project '{name}' created.", related_object_id=project_id)
+        event_bus.publish(ProjectCreated(project_id=project_id, name=name, created_by=main_party_id, created_at=created_at))
         return {"status": "Project created", "project_id": project_id}
 
     def create_subgroup(self, project_id: str, name: str) -> Dict[str, Any]:
@@ -26,7 +29,12 @@ class ProjectService:
         """Invite a user to a project with a given role."""
         membership_id = MembershipRepository.insert_membership(user_id, project_id, "", role)
         AuditService().log_event("invite_user", user_id, {"project_id": project_id, "role": role})
-        NotificationService().create_notification(user_id, "invited", f"You've been invited to project {project_id} as {role}.")
+        NotificationService().create_notification(
+            user_id, "invited",
+            f"You've been invited to project {project_id} as {role}.",
+            related_object_id=project_id,
+        )
+        event_bus.publish(MemberAdded(project_id=project_id, user_id=user_id, role=role))
         return {"status": "User invited", "membership_id": membership_id}
 
     def approve_project_membership(self, membership_id: str) -> Dict[str, Any]:
@@ -57,8 +65,8 @@ class ProjectService:
 
     def get_project_members(self, project_id: str) -> List[Dict[str, Any]]:
         """Return membership records enriched with verification status and device count."""
-        from db import db
-        return db.query(
+        import db as _db
+        return _db.query(
             """
             SELECT m.id, m.user_id, m.project_id, m.role_id,
                    u.verification_status,

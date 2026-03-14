@@ -45,6 +45,7 @@ export function VersionHistory({ contractId, currentUserId, canApprove, canRejec
     onSuccess: () => {
       toast.success('Revision approved.');
       qc.invalidateQueries({ queryKey: ['contract-versions', contractId] });
+      qc.invalidateQueries({ queryKey: ['contract', contractId] });
     },
     onError: () => toast.error('Approval failed. Please try again.'),
   });

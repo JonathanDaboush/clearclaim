@@ -58,6 +58,40 @@ class AuditService:
                 return False
         return True
 
+    def verify_audit_entries(self) -> Dict[str, Any]:
+        """Return per-entry integrity status for the full audit chain.
+
+        Returns:
+            {
+                "is_valid": bool,
+                "invalid_entry_ids": [<id>, ...],
+                "total": int,
+            }
+        Each entry is verified by recomputing its chained SHA-256 hash and comparing
+        against the stored value.  Any discrepancy is evidence of tampering.
+        """
+        import hashlib as _hl
+        chain = AuditRepository.get_chain()
+        invalid_ids: list = []
+        if not chain:
+            return {"is_valid": True, "invalid_entry_ids": [], "total": 0}
+        genesis = _hl.sha256(b"genesis").hexdigest()
+        for i, entry in enumerate(chain):
+            expected_prev = genesis if i == 0 else chain[i - 1].hash
+            payload = (
+                f"{entry.id}:{entry.user_id}:{entry.device_id}:"
+                f"{entry.event_type}:{entry.related_object_id}:"
+                f"{entry.details}:{entry.timestamp}:{expected_prev}"
+            )
+            expected_hash = _hl.sha256(payload.encode()).hexdigest()
+            if entry.hash != expected_hash:
+                invalid_ids.append(entry.id)
+        return {
+            "is_valid": len(invalid_ids) == 0,
+            "invalid_entry_ids": invalid_ids,
+            "total": len(chain),
+        }
+
     def recalculate_log_hash(self, entry: Any) -> str:
         """Recalculate the hash for a given AuditLog entry (for verification purposes)."""
         import hashlib as _hl

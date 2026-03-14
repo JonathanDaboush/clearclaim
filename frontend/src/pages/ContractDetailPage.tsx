@@ -35,6 +35,12 @@ export default function ContractDetailPage() {
     enabled:  !!contractId,
   });
 
+  const { data: contract } = useQuery({
+    queryKey: ['contract', contractId],
+    queryFn:  () => contractsApi.get(contractId!),
+    enabled:  !!contractId,
+  });
+
   const { data: userProjects = [] } = useQuery({
     queryKey: ['user-projects', session?.user_id],
     queryFn:  () => projectsApi.getUserProjects(session!.user_id),
@@ -50,8 +56,13 @@ export default function ContractDetailPage() {
   const projectName = (userProjects as { id: string; name: string }[]).find((p) => p.id === projectId)?.name ?? 'Project';
   const contractName = (projectContracts as { id: string; name?: string }[]).find((c) => c.id === contractId)?.name ?? 'Contract';
 
+  // Use the contract's current_version pointer (updated on activation/approval) to find the
+  // active version. Fall back to the latest version so the UI always shows something.
   const activeVersion: ContractVersionData | undefined =
-    versions.find((v) => v.id === versions[0]?.id) ?? versions[0];
+    (contract?.current_version
+      ? versions.find((v) => v.id === contract.current_version)
+      : undefined
+    ) ?? versions[versions.length - 1];
 
   const reviseMutation = useMutation({
     mutationFn: () => contractsApi.revise(contractId!, reviseContent, session!.user_id),
@@ -65,17 +76,17 @@ export default function ContractDetailPage() {
   });
 
   const exportMutation = useMutation({
-    mutationFn: () => exportApi.contractHistory(contractId!),
-    onSuccess: (res) => {
-      const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'application/json' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
+    mutationFn: () => exportApi.caseArchiveZipBlob(contractId!),
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
       a.href     = url;
-      a.download = `clearclaim-contract-${contractId}-export.json`;
+      a.download = `case-archive-${contractId}.zip`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success('Case archive downloaded.');
     },
-    onError: () => toast.error('Export failed.'),
+    onError: () => toast.error('Export failed. Please try again.'),
   });
 
   const TABS: { id: Tab; label: string }[] = [
@@ -87,7 +98,7 @@ export default function ContractDetailPage() {
   ];
 
   if (isLoading || !contractId) {
-    return <div className="p-6 text-sm text-secondary">Loading contractâ€¦</div>;
+    return <div className="p-6 text-sm text-secondary">Loading contract&hellip;</div>;
   }
 
   return (

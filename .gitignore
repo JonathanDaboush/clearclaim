@@ -1,26 +1,56 @@
-# Dependencies
+# ── Node.js ──────────────────────────────────────────────────────────────────
 node_modules/
 frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+*.tsbuildinfo
 
-# Build output
+# ── Build output ─────────────────────────────────────────────────────────────
+dist/
+build/
 frontend/dist/
+frontend/build/
 frontend/.vite/
 
-# Python
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
+*.egg-info/
+*.egg
+.Python
 .venv/
 venv/
-.env
+env/
 
-# Environment
+# ── Environment secrets ───────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
+.env.dev
+.env.staging
+.env.prod
 
-# Misc
+# ── Docker / database volumes ─────────────────────────────────────────────────
+postgres-data/
+uploads/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
+logs/
+
+# ── Dev scripts (not part of the product) ────────────────────────────────────
 write_dashboard.py
 write_evidence.py

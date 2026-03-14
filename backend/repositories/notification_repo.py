@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 import db
 from models.notification_model import Notification
 
+_MAX_RETRIES = 3
+
 
 class NotificationRepository:
 
@@ -18,10 +20,47 @@ class NotificationRepository:
     ) -> str:
         notification_id = str(uuid.uuid4())
         db.execute(
-            "INSERT INTO notifications (id, user_id, event_type, content, related_object_id, related_object_type, sent_at) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            "INSERT INTO notifications "
+            "(id, user_id, event_type, content, related_object_id, related_object_type, sent_at, delivery_status) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')",
             (notification_id, user_id, event_type, content, related_object_id, related_object_type, sent_at),
         )
         return notification_id
+
+    @staticmethod
+    def mark_delivered(notification_id: str) -> None:
+        db.execute(
+            "UPDATE notifications SET delivery_status = 'delivered', last_attempt_at = %s WHERE id = %s",
+            (datetime.datetime.now(datetime.timezone.utc).isoformat(), notification_id),
+        )
+
+    @staticmethod
+    def mark_failed(notification_id: str) -> None:
+        """Increment retry_count; mark as 'failed' when max retries are exhausted."""
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        db.execute(
+            """
+            UPDATE notifications
+            SET retry_count      = retry_count + 1,
+                last_attempt_at  = %s,
+                delivery_status  = CASE
+                    WHEN retry_count + 1 >= %s THEN 'failed'
+                    ELSE 'retrying'
+                END
+            WHERE id = %s
+            """,
+            (now, _MAX_RETRIES, notification_id),
+        )
+
+    @staticmethod
+    def get_pending_retries(limit: int = 50) -> List[Dict[str, Any]]:
+        """Return notifications that should be retried (status = 'retrying')."""
+        return db.query(
+            "SELECT id, user_id, event_type, content FROM notifications "
+            "WHERE delivery_status = 'retrying' AND retry_count < %s "
+            "ORDER BY last_attempt_at ASC LIMIT %s",
+            (_MAX_RETRIES, limit),
+        )
 
     @staticmethod
     def mark_read(notification_id: str) -> bool:

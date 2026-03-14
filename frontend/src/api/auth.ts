@@ -16,6 +16,20 @@ export interface SignupResult {
   message?: string;
 }
 
+export interface TotpResult {
+  valid: boolean;
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+}
+
+export interface RefreshResult {
+  access_token?: string;
+  expires_in?: number;
+  error?: string;
+  message?: string;
+}
+
 export const authApi = {
   /** POST /user/signup args=[email, password] */
   signup: (email: string, password: string) =>
@@ -25,9 +39,17 @@ export const authApi = {
   login: (email: string, password: string) =>
     rpcPost<LoginResult>('/user/login', [email, password]),
 
-  /** POST /user/verify_totp args=[user_id, totp_secret, code] */
+  /** POST /user/verify_totp args=[user_id, totp_secret, code] — returns JWT tokens on success */
   verifyTotp: (user_id: string, totp_secret: string, code: string) =>
-    rpcPost<boolean>('/user/verify_totp', [user_id, totp_secret, code]),
+    rpcPost<TotpResult>('/user/verify_totp', [user_id, totp_secret, code]),
+
+  /** POST /auth/refresh args=[refresh_token] */
+  refreshToken: (refresh_token: string) =>
+    rpcPost<RefreshResult>('/auth/refresh', [refresh_token]),
+
+  /** POST /auth/sign_out args=[refresh_token] */
+  signOut: (refresh_token: string) =>
+    rpcPost('/auth/sign_out', [refresh_token]),
 
   /** POST /user/initiate_password_reset args=[email] */
   initiatePasswordReset: (email: string) =>

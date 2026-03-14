@@ -25,11 +25,22 @@ export const signingApi = {
     rpcPost<boolean>('/signing/verify_totp', [totp_secret, code]),
 
   /**
-   * Step 3: POST /signing/sign args=[contract_version_id, user_id, device_id, ip, totp_secret, totp_code]
-   * Cryptographically sign the contract version. Backend enforces TOTP.
+   * Step 3: POST /signing/sign args=[contract_version_id, user_id, device_id, ip, totp_secret, totp_code, idempotency_key]
+   * Cryptographically sign the contract version. Backend enforces TOTP and idempotency.
+   * ip is injected by the server; pass '' from the client.
    */
-  sign: (contract_version_id: string, user_id: string, device_id: string, ip: string, totp_secret: string, totp_code: string) =>
-    rpcPost<{ status: string; signature_id: string; ip?: string }>('/signing/sign', [contract_version_id, user_id, device_id, ip, totp_secret, totp_code]),
+  sign: (
+    contract_version_id: string,
+    user_id: string,
+    device_id: string,
+    totp_secret: string = '',
+    totp_code: string = '',
+    idempotency_key: string = '',
+  ) =>
+    rpcPost<{ status: string; signature_id: string; ip?: string; signed_at?: string; contract_snapshot_hash?: string; totp_verified?: boolean }>(
+      '/signing/sign',
+      [contract_version_id, user_id, device_id, '', totp_secret, totp_code, idempotency_key],
+    ),
 
   /** GET /signing/get_signatures ?contract_version_id=... */
   getSignatures: (contract_version_id: string) =>

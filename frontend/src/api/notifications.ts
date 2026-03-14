@@ -7,6 +7,7 @@ export interface NotificationData {
   message: string;
   is_read: boolean;
   created_at: string;
+  related_object_id?: string;
 }
 
 export const notificationsApi = {

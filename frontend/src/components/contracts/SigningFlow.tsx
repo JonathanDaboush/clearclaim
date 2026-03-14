@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { signingApi } from '@/api/signing';
 import { ContractViewer } from './ContractViewer';
@@ -46,6 +47,7 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
   const [signedAt,        setSignedAt]       = useState('');
   const [docHash,         setDocHash]        = useState('');
   const [signingIp,       setSigningIp]      = useState('');
+  const [snapshotHash,    setSnapshotHash]   = useState('');
   const [error,           setError]          = useState('');
 
   const completedSteps = (): string[] => {
@@ -72,16 +74,16 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
         version.id,
         session!.user_id,
         session!.device_id || '',
-        '',
         session!.totp_secret,
-        totpCode
+        totpCode,
       );
       return result;
     },
     onSuccess: (res) => {
       setSignatureId(res.signature_id);
-      setSignedAt(new Date().toISOString());
+      setSignedAt(res.signed_at ?? new Date().toISOString());
       if (res.ip) setSigningIp(res.ip);
+      if (res.contract_snapshot_hash) setSnapshotHash(res.contract_snapshot_hash);
       // hash the contract content client-side for the receipt display
       const encoder = new TextEncoder();
       const data = encoder.encode(version.content ?? version.id);
@@ -90,7 +92,8 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
         setDocHash(hex);
       });
       setStep('receipt');
-      onComplete?.();
+      // onComplete fires after receipt step is displayed (not before)
+      setTimeout(() => onComplete?.(), 0);
       setError('');
     },
     onError: () => setError('Authentication failed or signing error. Check your TOTP code and try again.'),
@@ -246,13 +249,14 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
               title="Signing Receipt"
               variant="success"
               fields={[
-                { label: 'Signature ID',   value: signatureId, mono: true },
-                { label: 'Signed by',      value: session?.email ?? session?.user_id ?? '' },
-                { label: 'Timestamp',      value: format(new Date(signedAt || Date.now()), 'dd MMM yyyy, HH:mm:ss z') },
-                { label: 'Device',         value: session?.device_id ? session.device_id.slice(0, 20) + '…' : 'current device', mono: true },
-                { label: 'IP',             value: signingIp || 'recorded server-side' },
-                { label: 'Document hash',  value: docHash ? docHash.slice(0, 32) + '…' : 'computing…', mono: true },
-                { label: 'Version',        value: `v${version.version_number}` },
+                { label: 'Signature ID',       value: signatureId, mono: true },
+                { label: 'Signed by',          value: session?.email ?? session?.user_id ?? '' },
+                { label: 'Timestamp',          value: format(new Date(signedAt || Date.now()), 'dd MMM yyyy, HH:mm:ss z') },
+                { label: 'Device',             value: session?.device_id ? session.device_id.slice(0, 20) + '\u2026' : 'current device', mono: true },
+                { label: 'IP',                 value: signingIp || 'recorded server-side' },
+                { label: 'Document hash',      value: docHash ? docHash.slice(0, 32) + '\u2026' : 'computing\u2026', mono: true },
+                ...(snapshotHash ? [{ label: 'Snapshot hash', value: snapshotHash.slice(0, 32) + '\u2026', mono: true }] : []),
+                { label: 'Version',            value: `v${version.version_number}` },
               ]}
             />
 
@@ -261,6 +265,17 @@ export function SigningFlow({ version, onComplete, onCancel }: Props) {
                 Print Receipt
               </Button>
             </div>
+
+            <p className="text-xs text-meta text-center">
+              By signing you acknowledged and consented to the{' '}
+              <Link to="/legal/esignature" className="text-accent hover:underline" target="_blank" rel="noopener noreferrer">
+                Electronic Signature Disclosure
+              </Link>{' '}
+              and{' '}
+              <Link to="/legal/terms" className="text-accent hover:underline" target="_blank" rel="noopener noreferrer">
+                Terms of Service
+              </Link>.
+            </p>
           </div>
         </div>
       )}

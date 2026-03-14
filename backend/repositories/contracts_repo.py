@@ -9,8 +9,8 @@ class ContractsRepository:
     def create_contract(project_id: str, created_by: str, name: str = 'Untitled Contract') -> str:
         contract_id = str(uuid.uuid4())
         db.execute(
-            "INSERT INTO contracts (id, project_id, created_by, name) VALUES (%s, %s, %s, %s)",
-            (contract_id, project_id, created_by, name),
+            "INSERT INTO contracts (id, project_id, created_by, name, status) VALUES (%s, %s, %s, %s, %s)",
+            (contract_id, project_id, created_by, name, 'draft'),
         )
         return contract_id
 

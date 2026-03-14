@@ -1,8 +1,24 @@
 # Main wrapper for controllers
 
 import json
+import os
+
+# Load .env.* file for the current ENV (dev / staging / prod).
+# This is a no-op if the variables are already injected (e.g. via Docker env_file).
+try:
+    from dotenv import load_dotenv
+    _env_name = os.environ.get("ENV", "development")
+    _env_file_map = {
+        "development": "../.env.dev",
+        "staging":     "../.env.staging",
+        "production":  "../.env.prod",
+    }
+    load_dotenv(_env_file_map.get(_env_name, "../.env.dev"), override=False)
+except ImportError:
+    pass
+
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 import controllers.auth_controller as auth_ctrl
@@ -17,6 +33,12 @@ import controllers.notification_controller as notification_ctrl
 import controllers.project_controller as project_ctrl
 import controllers.security_controller as security_ctrl
 import controllers.signing_controller as signing_ctrl
+
+from utils.rate_limiter import RateLimiter, RateLimitExceeded
+from utils.jwt_utils import require_auth
+
+# Module-level singleton — shared across all request handler instances
+_rate_limiter = RateLimiter()
 
 # Role enum and permission map
 ROLE_WORKER_MANAGER = 'worker_manager'  # Worker who can also manage/invite other workers
@@ -126,6 +148,7 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/audit/generate_hash': audit_ctrl.generate_log_hash,
     '/audit/append': audit_ctrl.append_audit_log,
     '/audit/verify_chain': audit_ctrl.verify_audit_chain,
+    '/audit/verify_entries': audit_ctrl.verify_audit_entries,
     '/audit/recalculate_hash': audit_ctrl.recalculate_log_hash,
     '/audit/snapshot': audit_ctrl.generate_audit_snapshot,
     '/audit/archive_snapshot': audit_ctrl.archive_audit_snapshot,
@@ -184,6 +207,10 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/legal/data_localization': lambda *_a: {'data_localization': 'If data is stored outside Canada, users are informed and PIPEDA compliance ensured.'},
     '/legal/dispute_resolution': lambda *_a: {'dispute_resolution': 'Disputes are resolved according to the governing law specified in our terms.'},
     '/legal/right_to_be_forgotten': lambda *_a: {'right_to_be_forgotten': 'Users may request deletion of personal data, but audit logs and evidence are not deleted to preserve legal integrity.'},
+
+    # ── Auth token management ────────────────────────────────────────────────
+    '/auth/refresh':  auth_ctrl.refresh_token,
+    '/auth/sign_out': auth_ctrl.sign_out,
 }
 
 def route(path: str, *args: Any, **kwargs: Any) -> Any:
@@ -199,7 +226,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         """Send CORS headers allowing browser access from any origin."""
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
     def do_OPTIONS(self) -> None:
         """Handle preflight CORS requests."""
@@ -210,6 +237,38 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed_path = urlparse(self.path)
         path = parsed_path.path
+        client_ip = self.client_address[0]
+
+        # ── JWT authentication ───────────────────────────────────────────────
+        auth_header: str = self.headers.get('Authorization', '') or ''
+        token_user_id = require_auth(path, auth_header)
+        if token_user_id is None:
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'error': 'unauthorized',
+                'message': 'Valid Bearer token required. Please log in.',
+            }).encode())
+            return
+
+        # ── Rate limiting ────────────────────────────────────────────────────
+        try:
+            _rate_limiter.check(client_ip, path)
+        except RateLimitExceeded as exc:
+            self.send_response(429)
+            self.send_header('Content-Type', 'application/json')
+            self._send_cors_headers()
+            self.send_header('Retry-After', str(exc.window))
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "error": "rate_limit_exceeded",
+                "message": str(exc),
+                "retry_after": exc.window,
+            }).encode('utf-8'))
+            return
+
         length = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(length).decode('utf-8')
         try:
@@ -220,7 +279,6 @@ class RequestHandler(BaseHTTPRequestHandler):
         req_kwargs: Dict[str, Any] = data.get('kwargs', {})
         # Inject the real client IP for the signing route (3rd positional arg is device_id, 4th is ip)
         if path == '/signing/sign':
-            client_ip = self.client_address[0]
             if len(req_args) >= 4:
                 req_args[3] = client_ip
             else:
@@ -241,6 +299,106 @@ class RequestHandler(BaseHTTPRequestHandler):
         query = parse_qs(parsed_path.query)
         req_args: List[str] = query.get('args', [])
         req_kwargs: Dict[str, str] = {k: v[0] for k, v in query.items() if k != 'args'}
+
+        # ── JWT authentication ───────────────────────────────────────────────
+        auth_header: str = self.headers.get('Authorization', '') or ''
+        token_user_id = require_auth(path, auth_header)
+        if token_user_id is None:
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'unauthorized', 'message': 'Valid Bearer token required.'}).encode())
+            return
+
+        # ── Signing certificate PDF download ─────────────────────────────────
+        if path == '/export/signing_certificate_pdf':
+            signature_id = req_kwargs.get('signature_id') or (req_args[0] if req_args else None)
+            if not signature_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'signature_id required'}).encode())
+                return
+            try:
+                from repositories.signature_repo import SignatureRepository
+                from services.pdf_service import generate_signing_certificate
+                sigs = SignatureRepository.get_by_version_ids({signature_id})
+                sig_data = vars(sigs[0]) if sigs else {'signature_id': signature_id}
+                pdf_bytes = generate_signing_certificate(sig_data)
+            except Exception as exc:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(exc)}).encode())
+                return
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/pdf')
+            self.send_header('Content-Disposition', f'attachment; filename="signing-certificate-{signature_id[:8]}.pdf"')
+            self.send_header('Content-Length', str(len(pdf_bytes)))
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(pdf_bytes)
+            return
+
+        # ── Timeline PDF download ─────────────────────────────────────────────
+        if path == '/export/timeline_pdf':
+            contract_id = req_kwargs.get('contract_id') or (req_args[0] if req_args else None)
+            try:
+                from repositories.audit_repo import AuditRepository
+                from services.pdf_service import generate_timeline_pdf
+                chain = AuditRepository.get_chain()
+                events = [vars(e) for e in chain if not contract_id or e.related_object_id == contract_id]
+                title = f"Audit Timeline" + (f" — {contract_id[:8]}" if contract_id else "")
+                pdf_bytes = generate_timeline_pdf(events, title)
+            except Exception as exc:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(exc)}).encode())
+                return
+            fname = f"timeline-{contract_id[:8] if contract_id else 'full'}.pdf"
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/pdf')
+            self.send_header('Content-Disposition', f'attachment; filename="{fname}"')
+            self.send_header('Content-Length', str(len(pdf_bytes)))
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(pdf_bytes)
+            return
+
+        # ── ZIP case-archive download ─────────────────────────────────────────
+        if path == '/export/case_archive_zip':
+            contract_id = req_kwargs.get('contract_id') or (req_args[0] if req_args else None)
+            if not contract_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'contract_id required'}).encode())
+                return
+            try:
+                zip_bytes = export_ctrl.build_case_archive_zip(contract_id)
+            except Exception as exc:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(exc)}).encode())
+                return
+            filename = f"case_archive_{contract_id}.zip"
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/zip')
+            self.send_header('Content-Disposition', f'attachment; filename="{filename}"')
+            self.send_header('Content-Length', str(len(zip_bytes)))
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(zip_bytes)
+            return
+
         result = route(path, *req_args, **req_kwargs)
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
@@ -253,12 +411,32 @@ class RequestHandler(BaseHTTPRequestHandler):
         pass
 
 
-def run_server(port: int = 8000) -> None:
+def run_server(port: int = 8080) -> None:
+    # ── Error monitoring (Sentry) ─────────────────────────────────────────────
+    _sentry_dsn = os.environ.get("SENTRY_DSN", "")
+    if _sentry_dsn:
+        try:
+            import sentry_sdk
+            sentry_sdk.init(
+                dsn=_sentry_dsn,
+                environment=os.environ.get("ENV", "development"),
+                # Capture 100% of errors; adjust traces_sample_rate for performance tracing
+                traces_sample_rate=0.1,
+            )
+            print("[sentry] Error monitoring enabled.")
+        except ImportError:
+            print("[sentry] sentry-sdk not installed — skipping error monitoring.")
+
     import db as _db
     try:
         _db.init_schema()
     except Exception as exc:
         print(f"[db] Schema init warning: {exc}")
+    # Start persistent background workers (email, file-scan, audit anchoring, etc.)
+    from workers.task_queue import task_queue
+    import services.async_tasks  # noqa: F401 — registers all task handlers as side-effect
+    import events.domain_events   # noqa: F401 — registers all event listeners as side-effect
+    task_queue.start_workers()
     server_address = ('', port)
     httpd = HTTPServer(server_address, RequestHandler)
     print(f'Server running on port {port}...')

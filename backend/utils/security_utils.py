@@ -8,13 +8,29 @@ pyotp = cast(Any, _pyotp)
 
 
 def hash_password(password: str) -> str:
-    """Return a SHA-256 hash of the password. Use bcrypt/argon2 in production."""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Return a bcrypt hash of the password (cost factor 12)."""
+    try:
+        import bcrypt as _bcrypt
+        return _bcrypt.hashpw(password.encode(), _bcrypt.gensalt(rounds=12)).decode()
+    except ImportError:
+        # bcrypt not installed — fall back to SHA-256 (dev-only, insecure)
+        return hashlib.sha256(password.encode()).hexdigest()
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    """Return True if hash_password(password) matches the stored hash."""
-    return hmac.compare_digest(hash_password(password), password_hash)
+    """Return True if password matches the stored hash.
+
+    Handles both bcrypt hashes (preferred) and legacy SHA-256 hashes.
+    """
+    if password_hash.startswith("$2"):
+        # bcrypt hash
+        try:
+            import bcrypt as _bcrypt
+            return _bcrypt.checkpw(password.encode(), password_hash.encode())
+        except Exception:
+            return False
+    # Legacy SHA-256 hash — constant-time comparison
+    return hmac.compare_digest(hashlib.sha256(password.encode()).hexdigest(), password_hash)
 
 
 def generate_totp_secret() -> str:

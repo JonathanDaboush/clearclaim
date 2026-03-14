@@ -67,4 +67,8 @@ export const contractsApi = {
   /** POST /contract/transition_state args=[contract_id, new_state] */
   transitionState: (contract_id: string, new_state: string) =>
     rpcPost('/contract/transition_state', [contract_id, new_state]),
+
+  /** GET /contract/get_project_contracts ?project_id=... */
+  getProjectContracts: (project_id: string) =>
+    rpcGet<ContractData[]>('/contract/get_project_contracts', { project_id }),
 };

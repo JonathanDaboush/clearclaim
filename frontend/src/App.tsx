@@ -11,6 +11,7 @@ import DashboardPage          from '@/pages/DashboardPage';
 import ProjectsPage           from '@/pages/ProjectsPage';
 import ProjectWorkspacePage   from '@/pages/ProjectWorkspacePage';
 import ContractDetailPage     from '@/pages/ContractDetailPage';
+import ContractEditor         from '@/pages/ContractEditor';
 import DevicesPage            from '@/pages/DevicesPage';
 import PrivacyPage            from '@/pages/PrivacyPage';
 import NotificationsPage      from '@/pages/NotificationsPage';
@@ -20,6 +21,10 @@ import ForgotPasswordPage         from '@/pages/ForgotPasswordPage';
 import EvidencePage               from '@/pages/EvidencePage';
 import NewDeviceVerificationPage  from '@/pages/NewDeviceVerificationPage';
 import SecurityAlertsPage         from '@/pages/SecurityAlertsPage';
+import SecuritySettingsPage       from '@/pages/SecuritySettingsPage';
+import TermsPage                  from '@/pages/TermsPage';
+import ESignatureDisclosurePage   from '@/pages/ESignatureDisclosurePage';
+import DataRetentionPage          from '@/pages/DataRetentionPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +54,8 @@ export default function App() {
                 <Route path="/projects"                                        element={<ProjectsPage />} />
                 <Route path="/projects/:projectId"                             element={<ProjectWorkspacePage />} />
                 <Route path="/projects/:projectId/contracts/:contractId"       element={<ContractDetailPage />} />
+                <Route path="/projects/:projectId/contracts/new"               element={<ContractEditor />} />
+                <Route path="/projects/:projectId/contracts/:contractId/edit"  element={<ContractEditor />} />
                 <Route path="/contracts/:contractId"                           element={<ContractDetailPage />} />
                 <Route path="/notifications"                                   element={<NotificationsPage />} />
                 <Route path="/devices"                                         element={<DevicesPage />} />
@@ -56,7 +63,11 @@ export default function App() {
                 <Route path="/billing"                                         element={<BillingPage />} />
                 <Route path="/privacy"          element={<PrivacyPage />} />
                 <Route path="/evidence"         element={<EvidencePage />} />
-                <Route path="/security-alerts"  element={<SecurityAlertsPage />} />
+                <Route path="/security-alerts"        element={<SecurityAlertsPage />} />
+                <Route path="/security-settings"      element={<SecuritySettingsPage />} />
+                <Route path="/legal/terms"             element={<TermsPage />} />
+                <Route path="/legal/esignature"        element={<ESignatureDisclosurePage />} />
+                <Route path="/legal/data-retention"    element={<DataRetentionPage />} />
               </Route>
             </Route>
 

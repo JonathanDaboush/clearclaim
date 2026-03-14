@@ -1,4 +1,5 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { notificationsApi } from '@/api/notifications';
 import type { NotificationData } from '@/api/notifications';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,7 +11,7 @@ export default function NotificationsPage() {
   const qc = useQueryClient();
   const { session } = useAuthStore();
 
-  const { data: notifications = [], isLoading } = useQuery({
+  const { data: notifications = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['notifications', session?.user_id],
     queryFn: () => notificationsApi.getAll(session!.user_id),
     enabled: !!session?.user_id,
@@ -36,7 +37,14 @@ export default function NotificationsPage() {
       <div className="px-6 pb-10">
         <div className="card">
           <div className="divide-y divide-border">
-            {isLoading && <p className="px-5 py-4 text-sm text-secondary">Loadingâ€¦</p>}
+            {isLoading && <p className="px-5 py-4 text-sm text-secondary">Loading…</p>}
+
+            {isError && (
+              <div className="px-5 py-8 text-center">
+                <p className="text-sm text-disputed font-medium">Failed to load notifications.</p>
+                <button className="mt-3 text-sm text-accent hover:underline" onClick={() => refetch()}>Retry</button>
+              </div>
+            )}
 
             {!isLoading && sorted.length === 0 && (
               <p className="px-5 py-8 text-sm text-secondary text-center">No notifications.</p>
@@ -57,6 +65,14 @@ export default function NotificationsPage() {
                     {n.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                   </p>
                   <p className="text-xs text-secondary mt-0.5">{n.message}</p>
+                  {n.type === 'invited' && n.related_object_id && (
+                    <Link
+                      to={`/projects/${n.related_object_id}`}
+                      className="text-xs text-accent hover:underline mt-1 inline-block"
+                    >
+                      View Project
+                    </Link>
+                  )}
                   <p className="text-xs text-meta mt-1">
                     {format(new Date(n.created_at), 'dd MMM yyyy, HH:mm')}
                   </p>

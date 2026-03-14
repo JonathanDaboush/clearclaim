@@ -5,7 +5,9 @@ psycopg2-binary
 types-psycopg2
 python-dotenv
 passlib
+bcrypt
 pyjwt
+pyotp
 pydantic
 cryptography
 requests
@@ -15,3 +17,6 @@ aiofiles
 pytest
 httpx
 python-dateutil
+sentry-sdk
+fpdf2
+boto3

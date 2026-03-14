@@ -48,13 +48,18 @@ class UsersRepository:
     @staticmethod
     def store_reset_token(token: str, user_id: str) -> None:
         db.execute(
-            "INSERT INTO password_reset_tokens (token, user_id) VALUES (%s, %s) ON CONFLICT (token) DO NOTHING",
+            """INSERT INTO password_reset_tokens (token, user_id, expires_at)
+               VALUES (%s, %s, NOW() + INTERVAL '2 hours')
+               ON CONFLICT (token) DO NOTHING""",
             (token, user_id),
         )
 
     @staticmethod
     def consume_reset_token(token: str) -> Optional[str]:
-        rows = db.query("SELECT user_id FROM password_reset_tokens WHERE token = %s", (token,))
+        rows = db.query(
+            "SELECT user_id FROM password_reset_tokens WHERE token = %s AND expires_at > NOW()",
+            (token,),
+        )
         if not rows:
             return None
         user_id = rows[0]["user_id"]

@@ -28,11 +28,22 @@ class SignatureRepository:
         signature_hash: str = "",
         image_url: Optional[str] = None,
         ip: str = "",
+        contract_snapshot_hash: str = "",
+        totp_verified: bool = False,
+        user_agent: str = "",
     ) -> str:
         signature_id = str(uuid.uuid4())
         db.execute(
-            "INSERT INTO signatures (id, contract_version_id, user_id, device_id, signed_at, signature_hash, image_url, ip) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-            (signature_id, contract_version_id, user_id, device_id, signed_at, signature_hash, image_url, ip),
+            """
+            INSERT INTO signatures
+              (id, contract_version_id, user_id, device_id, signed_at,
+               signature_hash, image_url, ip,
+               contract_snapshot_hash, totp_verified, user_agent)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (signature_id, contract_version_id, user_id, device_id, signed_at,
+             signature_hash, image_url, ip,
+             contract_snapshot_hash, totp_verified, user_agent),
         )
         return signature_id
 

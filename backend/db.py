@@ -92,8 +92,41 @@ def init_schema() -> None:
         with conn.cursor() as cur:
             cur.execute(sql)
         conn.commit()
+    # Apply incremental column migrations for existing databases
+    _migrate_schema()
     print("[db] Schema initialised.")
     _seed_roles()
+
+
+def _migrate_schema() -> None:
+    """Apply additive column migrations that CREATE IF NOT EXISTS cannot handle."""
+    migrations = [
+        # Add expires_at to password_reset_tokens if missing (added in v2)
+        "ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '2 hours')",
+        # Signature integrity columns (added in v3)
+        "ALTER TABLE signatures ADD COLUMN IF NOT EXISTS contract_snapshot_hash TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE signatures ADD COLUMN IF NOT EXISTS totp_verified BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE signatures ADD COLUMN IF NOT EXISTS user_agent TEXT NOT NULL DEFAULT ''",
+        # Evidence integrity columns (added in v3)
+        "ALTER TABLE evidence ADD COLUMN IF NOT EXISTS timestamp_proof TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE evidence ADD COLUMN IF NOT EXISTS uploader_hash TEXT NOT NULL DEFAULT ''",
+        # Notification delivery tracking (added in v3)
+        "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS delivery_status TEXT NOT NULL DEFAULT 'pending'",
+        "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS retry_count INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS last_attempt_at TIMESTAMPTZ",
+        # Device fingerprinting (added in v3)
+        "ALTER TABLE devices ADD COLUMN IF NOT EXISTS device_fingerprint TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE devices ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ",
+        "ALTER TABLE devices ADD COLUMN IF NOT EXISTS risk_score INTEGER NOT NULL DEFAULT 0",
+    ]
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            for stmt in migrations:
+                try:
+                    cur.execute(stmt)
+                except Exception:
+                    pass  # column already exists or table does not exist yet
+        conn.commit()
 
 
 _ROLES = {
