@@ -1,0 +1,300 @@
+================================================================================
+                        CLEARCLAIM — ENTITY RELATIONSHIP DIAGRAM
+================================================================================
+
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                              LEGEND                                    │
+  │                                                                        │
+  │   PK  = Primary Key          FK  = Foreign Key                         │
+  │   UQ  = Unique Constraint    NN  = Not Null                            │
+  │   ?   = Nullable             []  = JSON                                │
+  │                                                                        │
+  │   ───────>>   one-to-many       ──────>>   one-to-many                 │
+  │   ── 1:1 ──   one-to-one       ── M:N ──  many-to-many (via join)     │
+  │                                                                        │
+  │   All PKs are UUID. All timestamps are UTC.                            │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  1. USERS & IDENTITY
+================================================================================
+
+  ┌──────────────────────────────────────┐
+  │              USERS                   │
+  ├──────────────────────────────────────┤
+  │  PK   id                    UUID     │
+  │  UQ   email                 TEXT     │
+  │  NN   password_hash         TEXT     │
+  │  NN   authenticator_enabled BOOL     │
+  │  FK   role_id               UUID ──────────>> roles.id
+  │       verification_status   ENUM     │
+  │  NN   created_at            TS       │
+  │       updated_at            TS       │
+  └──────────────────────────────────────┘
+         │            │              │
+         │            │              │
+         ▼            ▼              ▼
+
+  ┌────────────────────────┐   ┌───────────────────────────────┐
+  │        DEVICES         │   │   IDENTITY_VERIFICATIONS      │
+  ├────────────────────────┤   ├───────────────────────────────┤
+  │  PK  id        UUID    │   │  PK  id          UUID         │
+  │  FK  user_id   UUID ──────>> users.id                      │
+  │  NN  device_info TEXT  │   │  FK  user_id     UUID ──────────>> users.id
+  │  NN  trusted   BOOL   │   │  NN  provider    TEXT          │
+  │  NN  added_at  TS     │   │  NN  status      ENUM         │
+  │  ?   revoked_at TS    │   │  NN  timestamp   TS            │
+  └────────────────────────┘   └───────────────────────────────┘
+
+
+================================================================================
+  2. ROLES & PERMISSIONS
+================================================================================
+
+  ┌──────────────────────────────────────┐
+  │              ROLES                   │
+  ├──────────────────────────────────────┤
+  │  PK   id              UUID           │
+  │  UQ   name            TEXT           │
+  │       permissions     JSON []        │
+  │  NN   created_at      TS             │
+  └──────────────────────────────────────┘
+  
+  Defined roles:
+    worker_manager  — full access + manage workers
+    worker          — create/revise contracts, add evidence, approve, sign
+    legal_rep       — approve revisions, add evidence, sign
+    client          — sign contracts, view
+    guest           — view only
+
+
+================================================================================
+  3. PROJECTS, SUBGROUPS & MEMBERSHIPS
+================================================================================
+
+  ┌──────────────────────────────────────┐
+  │            PROJECTS                  │
+  ├──────────────────────────────────────┤
+  │  PK   id              UUID           │
+  │  NN   name            TEXT           │
+  │  FK   main_party_id   UUID ────────────>> users.id
+  │  NN   created_at      TS             │
+  │  ?    deleted_at      TS             │
+  └──────────────────────────────────────┘
+         │
+         ├──────────────────────────┐
+         ▼                          ▼
+
+  ┌────────────────────────┐   ┌──────────────────────────────────────────────┐
+  │      SUBGROUPS         │   │              MEMBERSHIPS                     │
+  ├────────────────────────┤   ├──────────────────────────────────────────────┤
+  │  PK  id        UUID    │   │  PK  id            UUID                     │
+  │  FK  project_id UUID ─────>> projects.id        │                        │
+  │  NN  name      TEXT    │   │  FK  user_id       UUID ──────>> users.id   │
+  │  NN  created_at TS    │   │  FK  project_id    UUID ──────>> projects.id │
+  │  ?   deleted_at TS    │   │  FK  subgroup_id   UUID ──────>> subgroups.id│
+  └────────────────────────┘   │  FK  role_id       UUID ──────>> roles.id   │
+                               │  NN  joined_at     TS                       │
+                               │  ?   left_at       TS                       │
+                               │  NN  soft_deleted  BOOL                     │
+                               └──────────────────────────────────────────────┘
+
+
+================================================================================
+  4. CONTRACTS, VERSIONS & REVISIONS
+================================================================================
+
+  ┌──────────────────────────────────────────┐
+  │             CONTRACTS                    │
+  ├──────────────────────────────────────────┤
+  │  PK   id                    UUID         │
+  │  FK   project_id            UUID ──────────>> projects.id
+  │  FK   created_by            UUID ──────────>> users.id
+  │  NN   created_at            TS           │
+  │  FK   current_version_id    UUID ──────────>> contract_versions.id
+  └──────────────────────────────────────────┘
+         │
+         ▼
+
+  ┌──────────────────────────────────────────────────────────┐
+  │              CONTRACT_VERSIONS                           │
+  ├──────────────────────────────────────────────────────────┤
+  │  PK   id                UUID                             │
+  │  FK   contract_id       UUID ──────>> contracts.id       │
+  │  NN   version_number    INT                              │
+  │  NN   content           TEXT                             │
+  │  NN   created_at        TS                               │
+  │       approved_by       JSON [{user_id, timestamp}, ...] │
+  │  NN   hash              TEXT                             │
+  └──────────────────────────────────────────────────────────┘
+         │
+         ▼
+
+  ┌──────────────────────────────────────────────┐
+  │           REVISION_CHANGES                   │
+  ├──────────────────────────────────────────────┤
+  │  PK   id                    UUID             │
+  │  FK   contract_version_id   UUID ──────>> contract_versions.id
+  │       diff                  JSON []          │
+  │  NN   created_at            TS               │
+  └──────────────────────────────────────────────┘
+
+
+================================================================================
+  5. EVIDENCE
+================================================================================
+
+  ┌──────────────────────────────────┐
+  │           EVIDENCE               │
+  ├──────────────────────────────────┤
+  │  PK   id          UUID           │
+  │  NN   file_url    TEXT           │
+  │  FK   added_by    UUID ────────────>> users.id
+  │  NN   added_at    TS             │
+  │  ?    deleted_at  TS             │
+  │  NN   hash        TEXT           │
+  └──────────────────────────────────┘
+         │
+         ▼
+                        (join table — M:N between evidence and contracts)
+  ┌──────────────────────────────────────────────┐
+  │         EVIDENCE_CONTRACTS                   │
+  ├──────────────────────────────────────────────┤
+  │  PK   id            UUID                     │
+  │  FK   evidence_id   UUID ──────>> evidence.id│
+  │  FK   contract_id   UUID ──────>> contracts.id
+  └──────────────────────────────────────────────┘
+
+
+================================================================================
+  6. SIGNATURES
+================================================================================
+
+  ┌──────────────────────────────────────────────────────┐
+  │               SIGNATURES                             │
+  ├──────────────────────────────────────────────────────┤
+  │  PK   id                    UUID                     │
+  │  FK   contract_version_id   UUID ──>> contract_versions.id
+  │  FK   user_id               UUID ──>> users.id       │
+  │       signature_data        TEXT                     │
+  │  ?    image_url             TEXT                     │
+  │  NN   timestamp             TS                       │
+  │       ip                    TEXT                     │
+  │  FK   device_id             UUID ──>> devices.id     │
+  └──────────────────────────────────────────────────────┘
+
+
+================================================================================
+  7. AUDIT LOGS (append-only, cryptographically chained)
+================================================================================
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    AUDIT_LOGS                                │
+  ├──────────────────────────────────────────────────────────────┤
+  │  PK   id                      UUID                          │
+  │  NN   event_type              TEXT                          │
+  │  FK   user_id                 UUID ──>> users.id            │
+  │  FK   device_id               UUID ──>> devices.id          │
+  │  FK   contract_id             UUID ──>> contracts.id        │
+  │  FK   contract_version_id     UUID ──>> contract_versions.id│
+  │  NN   timestamp               TS (UTC)                      │
+  │       details                 TEXT                          │
+  │  NN   prev_hash               TEXT (required — chain link)  │
+  │  NN   hash                    TEXT                          │
+  │  ?    snapshot_hash           TEXT                          │
+  └──────────────────────────────────────────────────────────────┘
+
+  Chain rule: hash = H(event_type + user_id + timestamp + details + prev_hash)
+  Snapshot hashes anchored externally for periodic integrity verification.
+
+
+================================================================================
+  8. KEY MANAGEMENT
+================================================================================
+
+  ┌──────────────────────────────────────────┐
+  │               KEYS                       │
+  ├──────────────────────────────────────────┤
+  │  PK   id            UUID                 │
+  │  NN   type          ENUM                 │
+  │       ?  self-ref                        │
+  │  FK   parent_id     UUID ──>> keys.id    │
+  │  NN   created_at    TS                   │
+  │  ?    rotated_at    TS                   │
+  │  NN   status        ENUM                 │
+  └──────────────────────────────────────────┘
+
+  Key hierarchy:
+    root (offline/HSM)
+      └── system (HSM, signs audit entries)
+            └── session (ephemeral, per device/document)
+
+  Rotation: new key signed by previous key. Parent chain preserved.
+
+
+================================================================================
+  9. BILLING
+================================================================================
+
+  ┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+  │        SUBSCRIPTIONS             │   │          PAYMENTS                │
+  ├──────────────────────────────────┤   ├──────────────────────────────────┤
+  │  PK  id          UUID            │   │  PK  id          UUID           │
+  │  FK  user_id     UUID ──>> users.id  │  FK  user_id     UUID ──>> users.id
+  │  NN  tier        TEXT            │   │  NN  amount      DECIMAL        │
+  │  NN  start_date  DATE           │   │  NN  date        DATE           │
+  │  ?   end_date    DATE           │   │  NN  method      TEXT           │
+  │  NN  status      ENUM           │   │  NN  status      ENUM           │
+  └──────────────────────────────────┘   │      metrics     JSON []        │
+                                         └──────────────────────────────────┘
+
+
+================================================================================
+  10. NOTIFICATIONS
+================================================================================
+
+  ┌──────────────────────────────────────────────────────┐
+  │               NOTIFICATIONS                          │
+  ├──────────────────────────────────────────────────────┤
+  │  PK   id                    UUID                     │
+  │  FK   user_id               UUID ──>> users.id       │
+  │  NN   event_type            TEXT                     │
+  │  NN   content               TEXT                     │
+  │  NN   sent_at               TS                       │
+  │  ?    read_at               TS                       │
+  │       related_object_id     UUID                     │
+  │       related_object_type   TEXT                     │
+  └──────────────────────────────────────────────────────┘
+
+
+================================================================================
+  RELATIONSHIP SUMMARY
+================================================================================
+
+  users          1 ──>> N  devices
+  users          1 ──>> N  identity_verifications
+  users          1 ──>> N  memberships
+  users          1 ──>> N  signatures
+  users          1 ──>> N  audit_logs
+  users          1 ──>> N  subscriptions
+  users          1 ──>> N  payments
+  users          1 ──>> N  notifications
+
+  roles          1 ──>> N  users
+  roles          1 ──>> N  memberships
+
+  projects       1 ──>> N  subgroups
+  projects       1 ──>> N  memberships
+  projects       1 ──>> N  contracts
+
+  contracts      1 ──>> N  contract_versions
+  contracts      M <<──>> N  evidence          (via evidence_contracts)
+
+  contract_versions  1 ──>> N  revision_changes
+  contract_versions  1 ──>> N  signatures
+
+  keys           1 ──>> N  keys               (self-referential hierarchy)
+
+================================================================================
