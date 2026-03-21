@@ -21,6 +21,10 @@ class AuditRepository:
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
         prev_hash = AuditRepository.get_last_hash()
         log_id = str(uuid.uuid4())
+        # Normalize None → "" before hashing so verify can reproduce the same hash from DB values
+        device_id = device_id or ""
+        related_object_id = related_object_id or ""
+        details = details or ""
         hash_input = f"{log_id}:{user_id}:{device_id}:{event_type}:{related_object_id}:{details}:{timestamp}:{prev_hash}"
         log_hash = hashlib.sha256(hash_input.encode()).hexdigest()
         db.execute(

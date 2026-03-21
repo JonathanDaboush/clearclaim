@@ -63,7 +63,9 @@ def query(sql: str, params: Tuple[Any, ...] = ()) -> List[Dict[str, Any]]:
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(sql, params)
-            return [dict(r) for r in cur.fetchall()]
+            rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()  # close implicit transaction so pooled connections stay clean
+        return rows
 
 
 def execute(sql: str, params: Tuple[Any, ...] = ()) -> None:

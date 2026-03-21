@@ -69,3 +69,23 @@ class MembershipRepository:
             (user_id,),
         )
         return [MembershipRepository._to_obj(r) for r in rows]
+
+    @staticmethod
+    def get_membership(user_id: str, project_id: str) -> Membership | None:
+        rows = db.query(
+            "SELECT id, user_id, project_id, subgroup_id, role_id, soft_deleted, left_at::text AS left_at "
+            "FROM memberships WHERE user_id = %s AND project_id = %s AND soft_deleted = FALSE",
+            (user_id, project_id),
+        )
+        return MembershipRepository._to_obj(rows[0]) if rows else None
+
+    @staticmethod
+    def update_role(membership_id: str, new_role_id: str) -> bool:
+        rows = db.query("SELECT id FROM memberships WHERE id = %s AND soft_deleted = FALSE", (membership_id,))
+        if not rows:
+            return False
+        db.execute(
+            "UPDATE memberships SET role_id = %s WHERE id = %s",
+            (new_role_id, membership_id),
+        )
+        return True

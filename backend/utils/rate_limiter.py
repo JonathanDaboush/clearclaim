@@ -31,21 +31,24 @@ class RateLimitExceeded(Exception):
         )
 
 
+import os
+
 # Per-endpoint policies: (max_requests, window_seconds)
 # These cover all sensitive surfaces identified in the security review.
+_RATE_MULTIPLIER = 20 if os.environ.get("ENV") == "development" else 1
 _ENDPOINT_POLICIES: Dict[str, Tuple[int, int]] = {
-    "/user/login":                     (10, 60),
-    "/auth/authenticate_user":         (10, 60),
-    "/user/verify_totp":               (5,  60),
-    "/auth/verify_totp":               (5,  60),
-    "/signing/sign":                   (5,  60),
-    "/signing/verify_totp":            (5,  60),
-    "/user/initiate_password_reset":   (5, 300),
-    "/auth/initiate_password_reset":   (5, 300),
-    "/user/complete_password_reset":   (5, 300),
-    "/auth/complete_password_reset":   (5, 300),
-    "/user/signup":                    (5, 300),
-    "/auth/create_user":               (5, 300),
+    "/user/login":                     (10 * _RATE_MULTIPLIER, 60),
+    "/auth/authenticate_user":         (10 * _RATE_MULTIPLIER, 60),
+    "/user/verify_totp":               (5  * _RATE_MULTIPLIER, 60),
+    "/auth/verify_totp":               (5  * _RATE_MULTIPLIER, 60),
+    "/signing/sign":                   (5  * _RATE_MULTIPLIER, 60),
+    "/signing/verify_totp":            (5  * _RATE_MULTIPLIER, 60),
+    "/user/initiate_password_reset":   (5  * _RATE_MULTIPLIER, 300),
+    "/auth/initiate_password_reset":   (5  * _RATE_MULTIPLIER, 300),
+    "/user/complete_password_reset":   (5  * _RATE_MULTIPLIER, 300),
+    "/auth/complete_password_reset":   (5  * _RATE_MULTIPLIER, 300),
+    "/user/signup":                    (5  * _RATE_MULTIPLIER, 300),
+    "/auth/create_user":               (5  * _RATE_MULTIPLIER, 300),
 }
 
 # Default policy for all other POST endpoints (generous but present)

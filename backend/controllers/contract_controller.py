@@ -6,6 +6,9 @@ contract_service = ContractService()
 
 def create_contract(project_id: str, created_by: str, content: str, name: str = 'Untitled Contract') -> Dict[str, Any]:
     """Controller for creating contract."""
+    from utils.permission_utils import check_permission
+    if not check_permission(created_by, 'create_contract', project_id):
+        return {"status": "error", "message": "Insufficient permissions to create a contract."}
     return contract_service.create_contract(project_id, created_by, content, name)
 
 def create_contract_revision(contract_id: str, new_content: str, user_id: str) -> Dict[str, Any]:

@@ -46,15 +46,16 @@ class ContractVersionsRepository:
         return True
 
     @staticmethod
-    def check_unanimous(contract_version_id: str, required_user_ids: Set[str]) -> bool:
+    def check_unanimous(contract_version_id: str, required_user_ids) -> bool:
         if not required_user_ids:
             return True
+        required = set(required_user_ids)
         rows = db.query(
-            "SELECT user_id FROM contract_version_approvals WHERE contract_version_id = %s",
+            "SELECT user_id FROM contract_revision_approvals WHERE contract_version_id = %s",
             (contract_version_id,),
         )
         approved = {r["user_id"] for r in rows}
-        return required_user_ids.issubset(approved)
+        return required.issubset(approved)
 
     @staticmethod
     def mark_signed(contract_version_id: str) -> bool:

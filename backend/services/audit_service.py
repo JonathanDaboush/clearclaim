@@ -41,18 +41,13 @@ class AuditService:
         )
 
     def verify_audit_chain(self) -> bool:
-        """Walk the in-memory audit chain and verify each entry's hash is consistent."""
+        """Walk the audit chain and verify each entry's hash is self-consistent."""
         chain = AuditRepository.get_chain()
         if not chain:
             return True
         import hashlib as _hl
-        genesis = _hl.sha256(b"genesis").hexdigest()
-        for i, entry in enumerate(chain):
-            if i == 0:
-                expected_prev = genesis
-            else:
-                expected_prev = chain[i - 1].hash
-            payload = f"{entry.id}:{entry.user_id}:{entry.device_id}:{entry.event_type}:{entry.related_object_id}:{entry.details}:{entry.timestamp}:{expected_prev}"
+        for entry in chain:
+            payload = f"{entry.id}:{entry.user_id}:{entry.device_id}:{entry.event_type}:{entry.related_object_id}:{entry.details}:{entry.timestamp}:{entry.prev_hash}"
             expected_hash = _hl.sha256(payload.encode()).hexdigest()
             if entry.hash != expected_hash:
                 return False
@@ -75,13 +70,11 @@ class AuditService:
         invalid_ids: list = []
         if not chain:
             return {"is_valid": True, "invalid_entry_ids": [], "total": 0}
-        genesis = _hl.sha256(b"genesis").hexdigest()
-        for i, entry in enumerate(chain):
-            expected_prev = genesis if i == 0 else chain[i - 1].hash
+        for entry in chain:
             payload = (
                 f"{entry.id}:{entry.user_id}:{entry.device_id}:"
                 f"{entry.event_type}:{entry.related_object_id}:"
-                f"{entry.details}:{entry.timestamp}:{expected_prev}"
+                f"{entry.details}:{entry.timestamp}:{entry.prev_hash}"
             )
             expected_hash = _hl.sha256(payload.encode()).hexdigest()
             if entry.hash != expected_hash:

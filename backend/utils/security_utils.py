@@ -41,7 +41,7 @@ def generate_totp_secret() -> str:
 def verify_totp(secret: str, code: str) -> bool:
     """Return True if the TOTP code is valid for the given secret."""
     totp = pyotp.TOTP(secret)
-    return totp.verify(code)
+    return totp.verify(code, valid_window=1)
 
 
 def generate_secure_token() -> str:

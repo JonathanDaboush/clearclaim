@@ -101,6 +101,9 @@ def validate_contract_content(content: Any) -> str:
 
 def validate_evidence_file(file_type: Any, file_size: Any) -> None:
     ft = assert_non_empty_string(file_type, "file_type").lower()
+    # Handle MIME types like "application/pdf" or "image/jpeg"
+    if "/" in ft:
+        ft = ft.rsplit("/", 1)[-1]
     if ft not in ALLOWED_EVIDENCE_TYPES:
         raise ValidationError(
             "file_type",

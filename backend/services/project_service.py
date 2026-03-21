@@ -57,11 +57,76 @@ class ProjectService:
         NotificationService().create_notification(user_id, "left_project", f"You have left project {project_id}.")
         return {"status": "Left project"}
 
-    def change_user_role(self, project_id: str, user_id: str, new_role: str) -> Dict[str, Any]:
-        """Change a user's role within a project."""
-        AuditService().log_event("change_role", user_id, {"project_id": project_id, "new_role": new_role})
-        NotificationService().create_notification(user_id, "role_changed", f"Your role in project {project_id} changed to {new_role}.")
+    def change_user_role(self, requester_id: str, project_id: str, user_id: str, new_role: str) -> Dict[str, Any]:
+        """Change a user's role within a project.
+
+        Enforces hierarchy: requester must outrank the target member.
+        The new role must also be below the requester's own level.
+        """
+        from utils.policy import Policy, ROLE_HIERARCHY, HierarchyViolation
+
+        # Requester must have manage_workers permission
+        Policy.enforce(requester_id, "manage_workers", project_id)
+
+        # Requester must outrank the target member
+        Policy.enforce_hierarchy(requester_id, user_id, project_id)
+
+        # New role must be below the requester's own level
+        requester_role = Policy._get_role(requester_id, project_id)
+        requester_rank = ROLE_HIERARCHY.get(requester_role, 0)
+        new_rank = ROLE_HIERARCHY.get(new_role, 0)
+        if new_rank >= requester_rank:
+            raise HierarchyViolation(requester_role, new_role)
+
+        # Persist the role change on ALL memberships for this user in this project
+        # (user may have both project-level and subgroup-level memberships)
+        memberships = [
+            m for m in MembershipRepository.get_by_project(project_id)
+            if m.user_id == user_id
+        ]
+        if not memberships:
+            return {"status": "error", "message": "User is not a member of this project"}
+        for m in memberships:
+            MembershipRepository.update_role(m.id, new_role)
+
+        AuditService().log_event("change_role", requester_id, {
+            "project_id": project_id, "target_user_id": user_id,
+            "old_role": memberships[0].role_id, "new_role": new_role,
+        })
+        NotificationService().create_notification(
+            user_id, "role_changed",
+            f"Your role in project {project_id} changed to {new_role}.",
+        )
         return {"status": "Role changed"}
+
+    def remove_member(self, requester_id: str, project_id: str, user_id: str) -> Dict[str, Any]:
+        """Remove a member from a project.
+
+        Enforces hierarchy: requester must outrank the target member.
+        Uses soft deletion to preserve historical participation.
+        """
+        from utils.policy import Policy
+
+        # Requester must have manage_workers permission
+        Policy.enforce(requester_id, "manage_workers", project_id)
+
+        # Requester must outrank the target member
+        Policy.enforce_hierarchy(requester_id, user_id, project_id)
+
+        membership = MembershipRepository.get_membership(user_id, project_id)
+        if not membership:
+            return {"status": "error", "message": "User is not a member of this project"}
+        MembershipRepository.soft_delete_membership(membership.id)
+
+        AuditService().log_event("remove_member", requester_id, {
+            "project_id": project_id, "removed_user_id": user_id,
+            "removed_role": membership.role_id,
+        })
+        NotificationService().create_notification(
+            user_id, "removed_from_project",
+            f"You have been removed from project {project_id}.",
+        )
+        return {"status": "Member removed"}
 
     def get_project_members(self, project_id: str) -> List[Dict[str, Any]]:
         """Return membership records enriched with verification status and device count."""

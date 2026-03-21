@@ -7,9 +7,12 @@ from services.notification_service import NotificationService
 
 
 class EvidenceService:
-    def upload_evidence(self, contract_id: str, file_bytes: bytes, file_url: str, file_type: str, file_size: int, added_by: str) -> Dict[str, Any]:
+    def upload_evidence(self, contract_id: str, file_bytes, file_url: str, file_type: str, file_size: int, added_by: str) -> Dict[str, Any]:
         """Upload evidence: validate, hash, store, and log. Returns evidence ID."""
         from utils.validators import validate_evidence_file, ValidationError
+        # JSON transport sends bytes as a string; ensure we have actual bytes
+        if isinstance(file_bytes, str):
+            file_bytes = file_bytes.encode('utf-8') if file_bytes else b''
         try:
             validate_evidence_file(file_type, file_size)
         except ValidationError as exc:
@@ -98,17 +101,18 @@ class EvidenceService:
         AuditService().log_event("approve_evidence", user_id, {"evidence_id": evidence_id})
         return {"status": "Evidence approved"}
 
-    def check_evidence_unanimous_approval(self, evidence_id: str, required_user_ids: Set[str]) -> bool:
+    def check_evidence_unanimous_approval(self, evidence_id: str, required_user_ids) -> bool:
         """Return True if all required parties have approved the evidence addition."""
         import db as _db
         if not required_user_ids:
             return True
+        required = set(required_user_ids)
         rows = _db.query(
             "SELECT user_id FROM evidence_approvals WHERE evidence_id = %s AND action = 'approve'",
             (evidence_id,),
         )
         approved = {r["user_id"] for r in rows}
-        return required_user_ids.issubset(approved)
+        return required.issubset(approved)
 
     def activate_evidence(self, evidence_id: str) -> Dict[str, Any]:
         """Activate evidence after unanimous approval."""

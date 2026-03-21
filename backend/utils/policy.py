@@ -56,12 +56,24 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "view",
     },
     "client": {
+        "approve_revision",
         "sign_contract",
         "view",
     },
     "guest": {
         "view",
     },
+}
+
+
+# ── Role hierarchy (highest → lowest privilege) ─────────────────────────────
+# Used to enforce that members can only modify/remove members at a LOWER level.
+ROLE_HIERARCHY: dict[str, int] = {
+    "worker_manager": 50,
+    "worker": 40,
+    "legal_rep": 30,
+    "client": 20,
+    "guest": 10,
 }
 
 
@@ -75,6 +87,18 @@ class PermissionDenied(Exception):
         super().__init__(
             f"User {user_id!r} is not allowed to perform {action!r} "
             f"in project {project_id!r}."
+        )
+
+
+class HierarchyViolation(Exception):
+    """Raised when a user tries to modify/remove a peer or higher-ranked member."""
+
+    def __init__(self, actor_role: str, target_role: str):
+        self.actor_role = actor_role
+        self.target_role = target_role
+        super().__init__(
+            f"Role {actor_role!r} cannot modify/remove role {target_role!r} — "
+            f"same-level or higher-privilege members are protected."
         )
 
 
@@ -113,6 +137,25 @@ class Policy:
         """
         if not cls.can(user_id, action, project_id):
             raise PermissionDenied(user_id, action, project_id)
+
+    @classmethod
+    def enforce_hierarchy(
+        cls,
+        actor_user_id: str,
+        target_user_id: str,
+        project_id: str,
+    ) -> None:
+        """Raise HierarchyViolation unless actor outranks target in the project.
+
+        Ensures same-level members cannot remove/demote each other.
+        Only a strictly higher-privilege role can modify a lower one.
+        """
+        actor_role = cls._get_role(actor_user_id, project_id)
+        target_role = cls._get_role(target_user_id, project_id)
+        actor_rank = ROLE_HIERARCHY.get(actor_role, 0)
+        target_rank = ROLE_HIERARCHY.get(target_role, 0)
+        if actor_rank <= target_rank:
+            raise HierarchyViolation(actor_role, target_role)
 
     @classmethod
     def enforce_ownership_or_permission(

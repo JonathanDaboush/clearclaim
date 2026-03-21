@@ -28,7 +28,7 @@ class DevicesRepository:
         rows = db.query("SELECT id FROM devices WHERE id = %s AND revoked = FALSE", (device_id,))
         if not rows:
             return False
-        db.execute("UPDATE devices SET revoked = TRUE, trusted = FALSE WHERE id = %s", (device_id,))
+        db.execute("UPDATE devices SET revoked = TRUE, trusted = FALSE, revoked_at = NOW() WHERE id = %s", (device_id,))
         return True
 
     @staticmethod
@@ -54,6 +54,7 @@ class DevicesRepository:
             """
             SELECT d.id, d.user_id, d.device_info, d.location, d.trusted,
                    d.added_at::text AS added_at, d.revoked,
+                   d.revoked_at::text AS revoked_at,
                    d.device_fingerprint, d.last_seen::text AS last_seen,
                    d.risk_score,
                    MAX(al.timestamp)::text AS last_activity
@@ -61,7 +62,7 @@ class DevicesRepository:
             LEFT JOIN audit_logs al ON al.device_id = d.id AND al.device_id != ''
             WHERE d.user_id = %s
             GROUP BY d.id, d.user_id, d.device_info, d.location, d.trusted,
-                     d.added_at, d.revoked, d.device_fingerprint, d.last_seen, d.risk_score
+                     d.added_at, d.revoked, d.revoked_at, d.device_fingerprint, d.last_seen, d.risk_score
             ORDER BY d.added_at
             """,
             (user_id,),

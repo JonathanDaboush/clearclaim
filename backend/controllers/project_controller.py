@@ -28,9 +28,13 @@ def leave_project(user_id: str, project_id: str) -> Dict[str, Any]:
     """Controller for leaving project."""
     return project_service.leave_project(user_id, project_id)
 
-def change_user_role(project_id: str, user_id: str, new_role: str) -> Dict[str, Any]:
-    """Controller for changing user role."""
-    return project_service.change_user_role(project_id, user_id, new_role)
+def change_user_role(requester_id: str, project_id: str, user_id: str, new_role: str) -> Dict[str, Any]:
+    """Controller for changing user role. Enforces hierarchy."""
+    return project_service.change_user_role(requester_id, project_id, user_id, new_role)
+
+def remove_member(requester_id: str, project_id: str, user_id: str) -> Dict[str, Any]:
+    """Controller for removing a member from a project. Enforces hierarchy."""
+    return project_service.remove_member(requester_id, project_id, user_id)
 
 def get_project_members(project_id: str) -> List[Dict[str, Any]]:
     """Controller for getting project members."""

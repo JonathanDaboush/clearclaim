@@ -3,6 +3,9 @@
 import json
 import os
 
+# Ensure CWD is the backend directory (so relative paths resolve correctly)
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 # Load .env.* file for the current ENV (dev / staging / prod).
 # This is a no-op if the variables are already injected (e.g. via Docker env_file).
 try:
@@ -18,8 +21,13 @@ except ImportError:
     pass
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
+
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
 
 import controllers.auth_controller as auth_ctrl
 import controllers.user_controller as user_ctrl
@@ -51,7 +59,7 @@ ROLE_PERMISSIONS = {
     ROLE_WORKER_MANAGER: ['create_contract', 'revise_contract', 'approve_revision', 'add_evidence', 'delete_evidence', 'sign_contract', 'manage_workers', 'view'],
     ROLE_WORKER:         ['create_contract', 'revise_contract', 'approve_revision', 'add_evidence', 'sign_contract', 'view'],
     ROLE_LEGAL_REP:      ['approve_revision', 'add_evidence', 'sign_contract', 'view'],
-    ROLE_CLIENT:         ['sign_contract', 'view'],
+    ROLE_CLIENT:         ['approve_revision', 'sign_contract', 'view'],
     ROLE_GUEST:          ['view'],
 }
 
@@ -95,6 +103,7 @@ ROUTES: Dict[str, Callable[..., Any]] = {
     '/project/reject_membership': project_ctrl.reject_project_membership,
     '/project/leave': project_ctrl.leave_project,
     '/project/change_user_role': project_ctrl.change_user_role,
+    '/project/remove_member': project_ctrl.remove_member,
     '/project/get_members': project_ctrl.get_project_members,
     '/project/get_user_role': project_ctrl.get_user_project_role,
     '/project/join_subgroup': project_ctrl.join_subgroup,
@@ -286,7 +295,17 @@ class RequestHandler(BaseHTTPRequestHandler):
                     req_args.append('')
                 if len(req_args) == 3:
                     req_args.append(client_ip)
-        result = route(path, *req_args, **req_kwargs)
+        try:
+            result = route(path, *req_args, **req_kwargs)
+        except Exception as exc:
+            import traceback, sys
+            traceback.print_exc(file=sys.stderr)
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(exc)}).encode('utf-8'))
+            return
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self._send_cors_headers()
@@ -399,7 +418,17 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(zip_bytes)
             return
 
-        result = route(path, *req_args, **req_kwargs)
+        try:
+            result = route(path, *req_args, **req_kwargs)
+        except Exception as exc:
+            import traceback, sys
+            traceback.print_exc(file=sys.stderr)
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(exc)}).encode('utf-8'))
+            return
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self._send_cors_headers()
@@ -407,11 +436,15 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(result).encode('utf-8'))
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
-        """Suppress default access log to reduce noise."""
-        pass
+        """Log to stderr so we can debug."""
+        import sys
+        sys.stderr.write("%s - - [%s] %s\n" %
+                         (self.client_address[0],
+                          self.log_date_time_string(),
+                          format%args))
 
 
-def run_server(port: int = 8080) -> None:
+def run_server(port: int = int(os.environ.get("PORT", "8080"))) -> None:
     # ── Error monitoring (Sentry) ─────────────────────────────────────────────
     _sentry_dsn = os.environ.get("SENTRY_DSN", "")
     if _sentry_dsn:
@@ -438,7 +471,7 @@ def run_server(port: int = 8080) -> None:
     import events.domain_events   # noqa: F401 — registers all event listeners as side-effect
     task_queue.start_workers()
     server_address = ('', port)
-    httpd = HTTPServer(server_address, RequestHandler)
+    httpd = ThreadedHTTPServer(server_address, RequestHandler)
     print(f'Server running on port {port}...')
     httpd.serve_forever()
 

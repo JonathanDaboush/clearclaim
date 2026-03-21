@@ -33,6 +33,11 @@ Roles & Permissions:
   - guest: view only
 • Actions such as signing, evidence addition/deletion, revision approval are restricted based on role
 • Role changes can be made by user admin; easily managed via UI
+• Hierarchy enforcement: members can only remove/modify roles of members at a lower privilege level
+  - Privilege order (highest → lowest): worker_manager > worker > legal_rep > client > guest
+  - Same-level members cannot remove, demote, or modify each other
+  - Only a higher-level role (e.g., worker_manager) can remove or change roles of lower-level members
+  - All membership removals and role changes are logged in the audit trail with the acting user's identity
 
 Notifications:
 • Role-based notifications for relevant updates
